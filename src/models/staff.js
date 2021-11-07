@@ -2,8 +2,10 @@ import mongoose from "mongoose";
 import validator from "validator";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import Timekeeping from "./timekeeping.js";
 import { StaffRole } from "../utils/enums.js";
 import { toArray } from "../utils/utils.js";
+import moment from "moment";
 
 /**
  * @swagger
@@ -44,6 +46,21 @@ import { toArray } from "../utils/utils.js";
  *         branchInfo:
  *           type: object
  *           $ref: "#/components/schemas/BranchInfo"
+ *         timekeeping:
+ *           type: Array
+ *           description: |
+ *             ```json
+ *                [
+ *                        {
+ *                            "clockIn": "2021-11-07T08:32:37.625Z",
+ *                            "clockOut": "2021-11-07T08:3:37.625Z"
+ *                        },
+ *                        {
+ *                            "clockIn": "2021-11-07T08:32:37.625Z",
+ *                            "clockOut": "2021-11-07T08:3:37.625Z"
+ *                        }
+ *                ]
+ *             ```
  *         _id:
  *           type: string
  *           description: The auto generated id for this object
@@ -100,6 +117,11 @@ const staffSchema = mongoose.Schema(
       ref: "BranchInfo",
       required: true,
     },
+    timekeeping: [
+      {
+        type: Timekeeping,
+      },
+    ],
   },
   {
     timestamps: true,
@@ -153,6 +175,72 @@ staffSchema.methods.getToken = async function () {
   staff.tokens.push({ token });
   await staff.save();
   return token;
+};
+/**
+ * Clock in for staff
+ * @param {Date} clockInDate
+ */
+staffSchema.methods.clockIn = async function (clockInDate) {
+  if (moment(clockInDate).isAfter(moment().endOf("date"))) {
+    throw new Error("Can not clock in for future date");
+  } else if (moment(clockInDate).isBefore(moment().startOf("date"))) {
+    throw new Error("Can not clock in for the past");
+  }
+
+  const staff = this;
+  const timekeeping = staff.timekeeping;
+  for (let i = 0; i < timekeeping.length; i++) {
+    const current = timekeeping[i];
+    if (!current.clockIn) continue;
+    if (
+      current.clockIn.getDate() == clockInDate.getDate() &&
+      current.clockIn.getMonth() == clockInDate.getMonth() &&
+      current.clockIn.getYear() == clockInDate.getYear()
+    ) {
+      throw new Error("Already clocked in");
+    }
+  }
+
+  staff.timekeeping.push({ clockIn: clockInDate });
+  await staff.save();
+};
+
+/**
+ * Clock out for staff
+ * @param {Date} clockOutDate
+ */
+staffSchema.methods.clockOut = async function (clockOutDate) {
+  if (moment(clockOutDate).isAfter(moment().endOf("date"))) {
+    throw new Error("Can not clock out for future date");
+  } else if (moment(clockOutDate).isBefore(moment().startOf("date"))) {
+    throw new Error("Can not clock out for the past");
+  }
+  const staff = this;
+  const timekeeping = staff.timekeeping;
+  let isClockedIn = false;
+  for (let i = 0; i < timekeeping.length; i++) {
+    const current = timekeeping[i];
+    if (
+      current.clockOut &&
+      current.clockOut.getDate() == clockOutDate.getDate() &&
+      current.clockOut.getMonth() == clockOutDate.getMonth() &&
+      current.clockOut.getYear() == clockOutDate.getYear()
+    ) {
+      throw new Error("Already clocked out");
+    } else if (
+      current.clockIn &&
+      current.clockIn.getDate() == clockOutDate.getDate() &&
+      current.clockIn.getMonth() == clockOutDate.getMonth() &&
+      current.clockIn.getYear() == clockOutDate.getYear()
+    ) {
+      isClockedIn = true;
+      current.clockOut = clockOutDate;
+    }
+  }
+  if (!isClockedIn) {
+    throw new Error("Not clocked in yet");
+  }
+  await staff.save();
 };
 
 /**

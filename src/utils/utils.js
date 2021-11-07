@@ -13,4 +13,20 @@ function dateSetter(date) {
 function dateGetter(date) {
   return moment(date).format("DD/MM/YYYY");
 }
-export { toArray, dateSetter, dateGetter };
+
+function timeSetter(time) {
+  const fm = moment(time, "HH:mm:ss DD/MM/YYYY");
+  return fm.toDate();
+}
+
+function timeGetter(time) {
+  return moment(time).format("HH:mm:ss DD/MM/YYYY");
+}
+
+function addDate(date, amount) {
+  const fm = moment(date, "HH:mm:ss DD/MM/YYYY");
+  fm.add(amount, "days");
+  return fm.toDate();
+}
+
+export { toArray, dateSetter, dateGetter, timeGetter, timeSetter, addDate };

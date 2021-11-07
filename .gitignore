@@ -89,3 +89,5 @@ config/
 node_modules/
 
 .vercel
+
+playground.js
