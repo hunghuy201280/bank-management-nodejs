@@ -87,3 +87,5 @@ lint/tmp/
 #nodejs
 config/
 node_modules/
+
+.vercel
