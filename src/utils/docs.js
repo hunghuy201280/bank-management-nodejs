@@ -12,6 +12,9 @@ const options = {
       {
         url: "http://localhost:3000",
       },
+      {
+        url: "https://bank-management-nodejs.vercel.app/",
+      },
     ],
   },
   apis: ["./src/models/*.js", "./src/routers/*.js"],
