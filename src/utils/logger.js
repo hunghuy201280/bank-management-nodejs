@@ -7,5 +7,12 @@ function error(message) {
     `);
   console.log(message);
 }
+function print(message) {
+  log(`
+    ${chalk.blue.bgGreen("--------------------------------")}
+   ${message} 
+    `);
+  console.log(message);
+}
 
-export { error };
+export { error, print };

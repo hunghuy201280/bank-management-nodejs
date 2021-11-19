@@ -8,6 +8,12 @@ import { LoanType, LoanProfileStatus } from "../utils/enums.js";
 /**
  * @swagger
  * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ *       example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2MTg3ODdlMGE5MGM5YTZhMjczN2VkYjQiLCJpYXQiOjE2MzcwMzQyOTl9._lklh-qHbU9cPBoXnlmk8UgD8C-pjR5-0Wt4uctgJUg
  *   schemas:
  *     LoanProfile:
  *       type: object
@@ -71,6 +77,7 @@ import { LoanType, LoanProfileStatus } from "../utils/enums.js";
  *            | Pending | 1 |
  *            | Done | 2 |
  *            | Rejected | 3 |
+ *            | Deleted | 4 |
  *         _id:
  *           type: string
  *           description: The auto generated id for this object

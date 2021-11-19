@@ -10,11 +10,11 @@ import {
   timeSetter,
   addDate,
 } from "../utils/utils.js";
-
+import auth from "../middleware/auth.js";
 const router = express.Router();
 
 //#region params
-router.param("id", async (req, res, next, id) => {
+router.param("id", auth, async (req, res, next, id) => {
   try {
     const staff = await Staff.findById(id).exec();
     if (!staff)
@@ -25,6 +25,57 @@ router.param("id", async (req, res, next, id) => {
   } catch (err) {
     log.error(err);
     res.status(404).send({ error: err });
+  }
+});
+//#endregion
+
+//#region get staff info
+/**
+ * @swagger
+ * /staffs/my_info:
+ *   get:
+ *     summary: Lấy staff info.
+ *     tags: [Staff]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Success
+ *         content:
+ *          application/json:
+ *            example:
+ *              data:
+ *               _id: 618787b58f39a0f3442f9bd1
+ *               role: 4
+ *               name: Hung Huy
+ *               email: humghuy201280@gmail.com
+ *               branchInfo: 618699b54e23538808c53885
+ *               createdAt: '2021-11-07T08:00:53.709Z'
+ *               updatedAt: '2021-11-07T08:00:53.709Z'
+ *               __v: 0
+ *       '404':
+ *         description: Lỗi not found
+ *         content:
+ *           application/json:
+ *             example:
+ *                error: This staff doesn't exist
+ *       '401':
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             example:
+ *                error: Please authenticate
+ *
+ */
+router.get("/staffs/my_info", auth, async (req, res) => {
+  const staff = req.staff;
+  staff.timekeeping = undefined;
+  try {
+    res.json({
+      data: staff,
+    });
+  } catch (error) {
+    res.status(500).send({ error });
   }
 });
 //#endregion
@@ -129,8 +180,9 @@ router.post("/staffs", async (req, res) => {
  *            schema:
  *              type: object
  *            example:
- *              email: hung2huy123@gmail.com
+ *              email: hunghuy12345@gmail.com
  *              password: Hunghuy123
+ *              branchId: 618787bc8f39a0f3442f9bd6
  *     responses:
  *       '200':
  *         description: Created
@@ -156,10 +208,12 @@ router.post("/staffs", async (req, res) => {
 
 router.post("/staffs/login", async (req, res) => {
   try {
-    const staff = await Staff.findByCredentials(
-      req.body.email,
-      req.body.password
-    );
+    const { email, password, branchId } = req.body;
+    const staff = await Staff.findByCredentials(email, password);
+
+    if (staff.branchInfo != branchId) {
+      throw new Error("This user is not working at this branch");
+    }
     const token = await staff.getToken();
     res.send({ staff, token });
   } catch (err) {
@@ -191,8 +245,10 @@ router.post("/staffs/su", async (req, res) => {
 
 /**
  * @swagger
- * /staffs/clock_in/:id:
+ * /staffs/clock_in:
  *   post:
+ *     security:
+ *       - bearerAuth: []
  *     summary: Clock in staff.
  *     tags: [Staff]
  *     description: |
@@ -206,13 +262,6 @@ router.post("/staffs/su", async (req, res) => {
  *
  *            example:
  *              clockIn: 16:22:32 07/11/2021
- *     parameters:
- *        - in: path
- *          name: id
- *          schema:
- *            type: String
- *          required: true
- *          description: Id của Staff cần clock in
  *     responses:
  *       '200':
  *         description: Clock in thành công
@@ -220,16 +269,17 @@ router.post("/staffs/su", async (req, res) => {
  *         description: Lỗi
  *         content:
  *           application/json:
- *             example:
- *              error: Clock In not found
- *       '409':
- *         description: Đã clock in rồi
- *         content:
- *           application/json:
- *             example:
- *               error: Already clocked in
+ *             examples:
+ *              past:
+ *                summary: Clock in ngày < now
+ *                value:
+ *                  error: Can not clock in for the past
+ *              alreadyClockedOut:
+ *                summary: Clock in rồi
+ *                value:
+ *                  error: Already clocked in
  */
-router.post("/staffs/clock_in/:id", async (req, res) => {
+router.post("/staffs/clock_in/", auth, async (req, res) => {
   try {
     if (!req.body.clockIn) {
       return res.status(400).send({ error: "Clock In not found" });
@@ -258,7 +308,42 @@ router.post("/staffs/clock_in/:id", async (req, res) => {
 
 //#region clock out
 
-router.post("/staffs/clock_out/:id", async (req, res) => {
+/**
+ * @swagger
+ * /staffs/clock_out/:
+ *   post:
+ *     security:
+ *       - bearerAuth: []
+ *     summary: Clock out staff.
+ *     tags: [Staff]
+ *     description: |
+ *              **clockOut phải ở dạng HH:mm:ss DD/MM/YYYY**
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *            schema:
+ *              type: object
+ *            example:
+ *              clockIn: 16:22:32 07/11/2021
+ *     responses:
+ *       '200':
+ *         description: Clock in thành công
+ *       '400':
+ *         description: Lỗi
+ *         content:
+ *           application/json:
+ *             examples:
+ *              past:
+ *                summary: Clock out ngày < now
+ *                value:
+ *                  error: Can not clock out for the past
+ *              alreadyClockedOut:
+ *                summary: Clock out rồi
+ *                value:
+ *                  error: Already clocked out
+ */
+router.post("/staffs/clock_out/", auth, async (req, res) => {
   try {
     const clockOut = req.body.clockOut;
     if (!clockOut) {

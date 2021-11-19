@@ -32,6 +32,8 @@ router.param("id", async (req, res, next, id) => {
  *   post:
  *     summary: Create loan profile.
  *     tags: [LoanProfile]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *        required: true
  *        description: customerType và imageType xem ở tab Schema

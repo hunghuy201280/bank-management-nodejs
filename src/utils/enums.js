@@ -31,6 +31,7 @@ const LoanProfileStatus = {
   Pending: 1,
   Done: 2,
   Rejected: 3,
+  Deleted: 4,
 };
 
 export {

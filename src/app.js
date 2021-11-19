@@ -8,6 +8,7 @@ import bImageRouter from "./routers/b_image.js";
 import loanProfileRouter from "./routers/loan_profile.js";
 import branchInfoRouter from "./routers/branch_info.js";
 import loanContractRouter from "./routers/loan_contract.js";
+import customerRouter from "./routers/customer.js";
 import cors from "cors";
 const app = express();
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
@@ -19,5 +20,6 @@ app.use(bImageRouter);
 app.use(loanProfileRouter);
 app.use(branchInfoRouter);
 app.use(loanContractRouter);
+app.use(customerRouter);
 
 export default app;

@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import validator from "validator";
 import { toArray } from "../utils/utils.js";
-
+import { StaffRole } from "../utils/enums.js";
 /**
  * @swagger
  * components:
@@ -21,6 +21,9 @@ import { toArray } from "../utils/utils.js";
  *         loanProfile:
  *           type: object
  *           $ref: "#/components/schemas/LoanProfile"
+ *         approver:
+ *           type: object
+ *           $ref: "#/components/schemas/Staff"
  *         commitment:
  *           type: String
  *         signatureImg:
@@ -52,6 +55,14 @@ const loanContractSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "LoanProfile",
+    },
+    approver: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "Staff",
+      validate(value) {
+        if (value.role != StaffRole.Director) throw new Error("Not Allowed");
+      },
     },
     commitment: {
       type: String,
