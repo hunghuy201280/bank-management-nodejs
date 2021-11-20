@@ -22,8 +22,9 @@ router.post(
   async (req, res) => {
     try {
       const resultId = [];
-
       const files = req.files;
+      console.log(files.length);
+
       for (var i = 0; i < files.length; i++) {
         const buffer = await sharp(files[i].buffer)
           .resize({ width: 250, height: 250 })

@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import validator from "validator";
 import { toArray } from "../utils/utils.js";
 import { StaffRole } from "../utils/enums.js";
+import LoanProfile from "./loan_profile.js";
+import BranchInfo from "./branch_info.js";
 /**
  * @swagger
  * components:
@@ -50,20 +52,27 @@ const loanContractSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "BranchInfo",
+      async validate(value) {
+        const checkExisting = await BranchInfo.findById(value);
+
+        if (!checkExisting) {
+          throw new Error("This BranchInfo does not exist");
+        }
+      },
     },
     loanProfile: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "LoanProfile",
-    },
-    approver: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: "Staff",
-      validate(value) {
-        if (value.role != StaffRole.Director) throw new Error("Not Allowed");
+      async validate(value) {
+        const checkExisting = await LoanProfile.findById(value);
+
+        if (!checkExisting) {
+          throw new Error("This LoanProfile does not exist");
+        }
       },
     },
+
     commitment: {
       type: String,
       required: true,

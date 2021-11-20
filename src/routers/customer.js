@@ -59,6 +59,9 @@ router.get("/customers", auth, async (req, res) => {
   }
 });
 
+/**
+ * add customer
+ */
 router.post("/customers", async (req, res) => {
   try {
     const customer = new Customer(req.body);

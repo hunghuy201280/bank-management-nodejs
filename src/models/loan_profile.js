@@ -4,6 +4,9 @@ import { ProofOfIncomeType } from "../utils/enums.js";
 import { toArray } from "../utils/utils.js";
 import moment from "moment";
 import { LoanType, LoanProfileStatus } from "../utils/enums.js";
+import Staff from "./staff.js";
+import BranchInfo from "./branch_info.js";
+import Customer from "../models/customer.js";
 
 /**
  * @swagger
@@ -101,11 +104,25 @@ const loanProfileSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "Customer",
+      async validate(value) {
+        const customer = await Customer.findById(value);
+
+        if (!customer) {
+          throw new Error("This customer does not exist");
+        }
+      },
     },
     staff: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "Staff",
+      async validate(value) {
+        const staff = await Staff.findById(value);
+
+        if (!staff) {
+          throw new Error("This staff does not exist");
+        }
+      },
     },
     loanApplicationNumber: {
       type: String,
@@ -162,11 +179,37 @@ const loanProfileSchema = mongoose.Schema(
       default: 1,
       enum: [toArray(LoanProfileStatus)],
     },
+    approver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Staff",
+      async validate(value) {
+        const staff = await Staff.findById(value);
+
+        if (staff.role != StaffRole.Director) throw new Error("Not Allowed");
+      },
+    },
+    branchInfo: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "BranchInfo",
+      async validate(value) {
+        const branch = await BranchInfo.findById(value);
+        if (!branch) {
+          throw new Error("This branch does not exist");
+        }
+      },
+    },
   },
   {
     timestamps: true,
   }
 );
+
+loanProfileSchema.virtual("loanContract", {
+  ref: "LoanContract",
+  localField: "_id",
+  foreignField: "loanProfile",
+});
 
 loanProfileSchema.statics.getApplicationNumber = async function () {
   const today = moment().startOf("day");

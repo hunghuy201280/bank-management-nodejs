@@ -10,7 +10,6 @@ function error(message) {
 function print(message) {
   log(`
     ${chalk.blue.bgGreen("--------------------------------")}
-   ${message} 
     `);
   console.log(message);
 }
