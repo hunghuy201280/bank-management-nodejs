@@ -121,7 +121,7 @@ router.post("/loan_profiles", auth, async (req, res) => {
     delete loanProf.customerId;
 
     loanProf.staff = req.staff._id;
-    loanProf.loanApplicationNumber = await LoanProfile.getApplicationNumber();
+    loanProf.loanApplicationNumber = await LoanProfile.getLoanProfileNumber();
     const loanProfile = new LoanProfile(loanProf);
     await loanProfile.save();
     res.status(201).send(loanProfile);
@@ -150,19 +150,53 @@ router.get("/loan_profiles", auth, async (req, res) => {
     if (req.query.skip) {
       skip = parseInt(req.query.skip);
     }
-
+    const { id, customerName, moneyToLoan, loanType, createdAt, loanStatus } =
+      req.body;
     const match = {};
+    if (moneyToLoan) {
+      match.moneyToLoan = moneyToLoan;
+    }
+    if (loanType) {
+      match.loanType = loanType;
+    }
+    if (loanStatus) {
+      match.loanStatus = loanStatus;
+    }
+    if (createdAt) {
+      match.createdAt = createdAt;
+    }
+    if (id) {
+      match._id = id;
+    }
     const sort = {};
     if (req.query.sortBy) {
       const splittedSortQuery = req.query.sortBy.split(":");
       sort[splittedSortQuery[0]] = splittedSortQuery[1] === "desc" ? -1 : 1;
     }
 
+    if (customerName) {
+      const profiles = await LoanProfile.find(match)
+        .populate("customer")
+        .skip(skip)
+        .limit(limit)
+        .sort(sort)
+        .exec();
+      const result = [];
+      for (const profile of profiles) {
+        log.print(profile);
+
+        if (profile.customer && profile.customer.name === customerName) {
+          result.push(profile);
+        }
+      }
+      return res.send(result);
+    }
     const result = await LoanProfile.find(match)
       .skip(skip)
       .limit(limit)
       .sort(sort)
       .exec();
+
     res.send(result);
   } catch (error) {
     log.error(error);

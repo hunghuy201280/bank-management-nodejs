@@ -6,6 +6,9 @@ import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
+/**
+ * get customer
+ */
 router.get("/customers", auth, async (req, res) => {
   try {
     const { phoneNumber, id, name, address, email, matchExact, isStartWith } =

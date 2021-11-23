@@ -3,7 +3,7 @@ import validator from "validator";
 import { ProofOfIncomeType } from "../utils/enums.js";
 import { toArray } from "../utils/utils.js";
 import moment from "moment";
-import { LoanType, LoanProfileStatus } from "../utils/enums.js";
+import { LoanType, LoanProfileStatus, StaffRole } from "../utils/enums.js";
 import Staff from "./staff.js";
 import BranchInfo from "./branch_info.js";
 import Customer from "../models/customer.js";
@@ -211,7 +211,7 @@ loanProfileSchema.virtual("loanContract", {
   foreignField: "loanProfile",
 });
 
-loanProfileSchema.statics.getApplicationNumber = async function () {
+loanProfileSchema.statics.getLoanProfileNumber = async function () {
   const today = moment().startOf("day");
 
   const num = await LoanProfile.count({
@@ -220,7 +220,9 @@ loanProfileSchema.statics.getApplicationNumber = async function () {
       $lte: moment(today).endOf("day").toDate(),
     },
   });
-  return `HSSV.${today.year()}.${today.date()}${today.month() + 1}.${num + 1}`;
+  return `HSVV.${today.year().toString().substring(2)}.${
+    today.month() + 1
+  }.${today.date()}.${num + 1}`;
 };
 
 const LoanProfile = mongoose.model("LoanProfile", loanProfileSchema);

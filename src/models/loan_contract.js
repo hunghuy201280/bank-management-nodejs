@@ -87,6 +87,56 @@ const loanContractSchema = mongoose.Schema(
     timestamps: true,
   }
 );
+loanContractSchema.virtual("paymentReceipts", {
+  ref: "PaymentReceipt",
+  localField: "_id",
+  foreignField: "loanContract",
+});
+loanContractSchema.virtual("disburseCertificates", {
+  ref: "DisburseCertificate",
+  localField: "_id",
+  foreignField: "loanContract",
+});
 
+loanContractSchema.set("toObject", { virtuals: true });
+loanContractSchema.set("toJSON", { virtuals: true });
+loanContractSchema.methods.getDebt = async function () {
+  const contract = this;
+  await contract.populate("paymentReceipts");
+  await contract.populate("loanProfile");
+  let result = 0;
+
+  for (const receipt of contract.paymentReceipts) {
+    result += receipt.amount;
+  }
+
+  return contract.loanProfile.moneyToLoan - result;
+};
+
+loanContractSchema.methods.canAddReceipt = async function (amount) {
+  const contract = this;
+  const debt = await contract.getDebt();
+  console.log(debt - amount >= 0);
+  return debt - amount >= 0;
+};
+
+loanContractSchema.methods.getRemainingDisburse = async function () {
+  const contract = this;
+  await contract.populate("disburseCertificates");
+  await contract.populate("loanProfile");
+  let result = 0;
+
+  for (const receipt of contract.disburseCertificates) {
+    result += receipt.amount;
+  }
+  return contract.loanProfile.moneyToLoan - result;
+};
+
+loanContractSchema.methods.canAddDisburseCertificate = async function (amount) {
+  const contract = this;
+  const remainingDisburse = await contract.getRemainingDisburse();
+  console.log(remainingDisburse - amount >= 0);
+  return remainingDisburse - amount >= 0;
+};
 const LoanContract = mongoose.model("LoanContract", loanContractSchema);
 export default LoanContract;

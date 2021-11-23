@@ -9,6 +9,8 @@ import loanProfileRouter from "./routers/loan_profile.js";
 import branchInfoRouter from "./routers/branch_info.js";
 import loanContractRouter from "./routers/loan_contract.js";
 import customerRouter from "./routers/customer.js";
+import paymentReceiptRouter from "./routers/payment_receipt.js";
+import disburseCertificateRouter from "./routers/disburse_certificate.js";
 import cors from "cors";
 const app = express();
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
@@ -21,5 +23,7 @@ app.use(loanProfileRouter);
 app.use(branchInfoRouter);
 app.use(loanContractRouter);
 app.use(customerRouter);
+app.use(paymentReceiptRouter);
+app.use(disburseCertificateRouter);
 
 export default app;
