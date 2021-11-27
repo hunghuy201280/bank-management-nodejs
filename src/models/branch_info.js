@@ -56,6 +56,7 @@ const branchInfoSchema = mongoose.Schema({
   branchCode: {
     type: String,
     required: true,
+    unique: true,
   },
 });
 

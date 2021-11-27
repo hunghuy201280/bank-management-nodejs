@@ -27,9 +27,11 @@ router.post("/branch_info", auth, async (req, res) => {
 
 //#region get branch info
 
-router.get("/branch_info/:id", auth, async (req, res) => {
+router.get("/branch_info/:branchCode", auth, async (req, res) => {
   try {
-    const branchInfo = await BranchInfo.findById(req.params.id).exec();
+    const branchInfo = await BranchInfo.findOne({
+      branchCode: req.params.branchCode,
+    }).exec();
     res.send({ data: branchInfo });
   } catch (error) {
     log.error(error);
