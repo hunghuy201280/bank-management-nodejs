@@ -25,4 +25,18 @@ router.post("/branch_info", auth, async (req, res) => {
 
 //#endregion
 
+//#region get branch info
+
+router.get("/branch_info/:id", auth, async (req, res) => {
+  try {
+    const branchInfo = await BranchInfo.findById(req.params.id).exec();
+    res.send({ data: branchInfo });
+  } catch (error) {
+    log.error(error);
+    res.status(400).send({ error });
+  }
+});
+
+//#endregion
+
 export default router;
