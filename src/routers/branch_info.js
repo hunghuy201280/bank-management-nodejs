@@ -36,7 +36,7 @@ router.get("/branch_info/:branchCode", async (req, res) => {
     res.send({ data: branchInfo });
   } catch (error) {
     log.error(error);
-    res.status(400).send({ error });
+    res.status(400).send({ error: error.message });
   }
 });
 
