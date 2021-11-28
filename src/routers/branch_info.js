@@ -32,7 +32,7 @@ router.get("/branch_info/:branchCode", async (req, res) => {
     const branchInfo = await BranchInfo.findOne({
       branchCode: req.params.branchCode,
     }).exec();
-    if (!branchInfo) throw new Error("This branch does not exist");
+    if (!branchInfo) throw new Error("This branch does not exist!");
     res.send({ data: branchInfo });
   } catch (error) {
     log.error(error);
