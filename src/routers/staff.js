@@ -215,6 +215,7 @@ router.post("/staffs/login", async (req, res) => {
       throw new Error("This user is not working at this branch");
     }
     const token = await staff.getToken();
+    staff.timekeeping = undefined;
     res.send({ staff, token });
   } catch (err) {
     log.error(err);
