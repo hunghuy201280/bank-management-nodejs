@@ -27,11 +27,12 @@ router.post("/branch_info", auth, async (req, res) => {
 
 //#region get branch info
 
-router.get("/branch_info/:branchCode", auth, async (req, res) => {
+router.get("/branch_info/:branchCode", async (req, res) => {
   try {
     const branchInfo = await BranchInfo.findOne({
       branchCode: req.params.branchCode,
     }).exec();
+    if (!branchInfo) throw new Error("This branch does not exist");
     res.send({ data: branchInfo });
   } catch (error) {
     log.error(error);
