@@ -137,6 +137,7 @@ staffSchema.methods.toJSON = function () {
   const staffObject = this.toObject();
   delete staffObject.password;
   delete staffObject.tokens;
+  staffObject.timekeeping = undefined;
   return staffObject;
 };
 

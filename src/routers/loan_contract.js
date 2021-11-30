@@ -1,5 +1,7 @@
 import express from "express";
 import LoanContract from "../models/loan_contract.js";
+import LoanProfile from "../models/loan_profile.js";
+
 import auth from "../middleware/auth.js";
 import * as log from "../utils/logger.js";
 const router = express.Router();
@@ -7,7 +9,9 @@ const router = express.Router();
 ///creat loan contract
 router.post("/loan_contracts", auth, async (req, res) => {
   const { loanProfile, commitment, signatureImg } = req.body;
-  const tempContract = await LoanContract.findOne({ loanProfile });
+  const tempContract = await LoanContract.findOne({
+    "loanProfile._id": loanProfile,
+  });
   log.print(`te ${tempContract}`);
 
   if (tempContract) {
@@ -15,17 +19,18 @@ router.post("/loan_contracts", auth, async (req, res) => {
       error: "This loan profile already had loan contract",
     });
   }
+  const profile = await LoanProfile.findById(loanProfile);
+  profile.approver = req.staff._id;
+  profile.save();
+
   try {
     const newContract = new LoanContract({
       branchInfo: req.staff.branchInfo,
-      loanProfile,
+      loanProfile: profile,
       commitment,
       signatureImg,
     });
-    await newContract.populate("loanProfile");
-    newContract.loanProfile.approver = req.staff._id;
     log.print(newContract.loanProfile);
-    await newContract.loanProfile.save();
     await newContract.save();
     res.status(201).send(newContract);
   } catch (error) {
@@ -57,6 +62,7 @@ router.get("/loan_contracts", auth, async (req, res) => {
       createdAt,
       profileId,
       moneyToLoan,
+      customerPhone,
     } = req.body;
     const matchContract = {};
     const matchProfile = {};
@@ -64,7 +70,7 @@ router.get("/loan_contracts", auth, async (req, res) => {
       matchProfile.moneyToLoan = moneyToLoan;
     }
     if (loanType) {
-      matchProfile.loanType = loanType;
+      matchProfile["loanProfile.loanType"] = loanType;
     }
     if (createdAt) {
       matchContract.createdAt = createdAt;
@@ -73,24 +79,22 @@ router.get("/loan_contracts", auth, async (req, res) => {
       matchContract._id = contractId;
     }
     if (profileId) {
-      matchProfile.loanProfile = profileId;
+      matchProfile["loanProfile._id"] = profileId;
     }
     const sort = {};
     if (req.query.sortBy) {
       const splittedSortQuery = req.query.sortBy.split(":");
       sort[splittedSortQuery[0]] = splittedSortQuery[1] === "desc" ? -1 : 1;
     }
-    let contracts = await LoanContract.find(matchContract)
+    let contracts = await LoanContract.find({
+      ...matchContract,
+      ...matchProfile,
+    })
       .populate([
-        {
-          path: "loanProfile",
-          model: "LoanProfile",
-          populate: [
-            { path: "staff", model: "Staff" },
-            { path: "approver", model: "Staff" },
-          ],
-          match: matchProfile,
-        },
+        { path: "loanProfile.staff" },
+        { path: "loanProfile.approver" },
+        { path: "loanProfile.customer" },
+        { path: "disburseCertificates" },
         { path: "paymentReceipts" },
       ])
       .skip(skip)
@@ -99,43 +103,23 @@ router.get("/loan_contracts", auth, async (req, res) => {
       .exec();
 
     contracts = contracts.filter((item) => item.loanProfile != null);
-    let result = [];
-    if (staffName || approver) {
-      if (staffName && approver) {
-        for (const contract of contracts) {
-          const profile = contract.loanProfile;
-          if (
-            profile.staff.name === staffName &&
-            profile.approver.name === approver
-          ) {
-            result.push(contract);
-          }
-        }
-      } else if (staffName) {
-        for (const contract of contracts) {
-          const profile = contract.loanProfile;
-          if (profile.staff.name === staffName) {
-            result.push(contract);
-          }
-        }
-      } else {
-        for (const contract of contracts) {
-          const profile = contract.loanProfile;
-          if (profile.approver.name === approver) {
-            result.push(contract);
-          }
-        }
-      }
+    contracts = contracts.filter((item) => {
+      const staffFilter = staffName
+        ? item.loanProfile.staff.name.startsWith(staffName)
+        : true;
+      const approverFilter = approver
+        ? item.loanProfile.approver.name.startsWith(approver)
+        : true;
+      const customerFilter = customerPhone
+        ? item.loanProfile.customer.phoneNumber.startsWith(customerPhone)
+        : true;
+      return staffFilter && customerFilter && approverFilter;
+    });
 
-      return res.send(result);
-    } else {
-      result = contracts;
-    }
-
-    if (result.length == 0) {
+    if (contracts.length == 0) {
       return res.status(404).send();
     }
-    res.send(result);
+    res.send(contracts);
   } catch (error) {
     log.error(error);
     res.status(400).send({ error });

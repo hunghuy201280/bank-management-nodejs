@@ -26,6 +26,11 @@ const disburseCertificateSchema = mongoose.Schema(
     amount: {
       type: Number,
       required: true,
+      validate(value) {
+        if (value <= 0) {
+          throw new Error("Amount cannot <=0");
+        }
+      },
     },
   },
   {

@@ -61,12 +61,10 @@ const loanContractSchema = mongoose.Schema(
       },
     },
     loanProfile: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: LoanProfile.schema,
       required: true,
-      ref: "LoanProfile",
       async validate(value) {
-        const checkExisting = await LoanProfile.findById(value);
-
+        const checkExisting = await LoanProfile.findById(value._id);
         if (!checkExisting) {
           throw new Error("This LoanProfile does not exist");
         }

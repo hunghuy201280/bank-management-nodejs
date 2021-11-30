@@ -244,58 +244,9 @@ router.post("/staffs/su", async (req, res) => {
 
 //#region clock in
 
-/**
- * @swagger
- * /staffs/clock_in:
- *   post:
- *     security:
- *       - bearerAuth: []
- *     summary: Clock in staff.
- *     tags: [Staff]
- *     description: |
- *              **clockIn phải ở dạng HH:mm:ss DD/MM/YYYY**
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *            schema:
- *              type: object
- *
- *            example:
- *              clockIn: 16:22:32 07/11/2021
- *     responses:
- *       '200':
- *         description: Clock in thành công
- *       '400':
- *         description: Lỗi
- *         content:
- *           application/json:
- *             examples:
- *              past:
- *                summary: Clock in ngày < now
- *                value:
- *                  error: Can not clock in for the past
- *              alreadyClockedOut:
- *                summary: Clock in rồi
- *                value:
- *                  error: Already clocked in
- */
 router.post("/staffs/clock_in/", auth, async (req, res) => {
   try {
-    if (!req.body.clockIn) {
-      return res.status(400).send({ error: "Clock In not found" });
-    }
-
-    const isValidDate = moment(
-      req.body.clockIn,
-      "HH:mm:ss DD/MM/YYYY",
-      true
-    ).isValid();
-    if (!isValidDate) {
-      return res.status(400).send({ error: "Invalid date" });
-    }
-
-    const currentDate = timeSetter(req.body.clockIn);
+    const currentDate = timeSetter(moment());
 
     await req.staff.clockIn(currentDate);
     res.send();
@@ -308,55 +259,9 @@ router.post("/staffs/clock_in/", auth, async (req, res) => {
 //#endregion clock in
 
 //#region clock out
-
-/**
- * @swagger
- * /staffs/clock_out/:
- *   post:
- *     security:
- *       - bearerAuth: []
- *     summary: Clock out staff.
- *     tags: [Staff]
- *     description: |
- *              **clockOut phải ở dạng HH:mm:ss DD/MM/YYYY**
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *            schema:
- *              type: object
- *            example:
- *              clockIn: 16:22:32 07/11/2021
- *     responses:
- *       '200':
- *         description: Clock in thành công
- *       '400':
- *         description: Lỗi
- *         content:
- *           application/json:
- *             examples:
- *              past:
- *                summary: Clock out ngày < now
- *                value:
- *                  error: Can not clock out for the past
- *              alreadyClockedOut:
- *                summary: Clock out rồi
- *                value:
- *                  error: Already clocked out
- */
 router.post("/staffs/clock_out/", auth, async (req, res) => {
   try {
-    const clockOut = req.body.clockOut;
-    if (!clockOut) {
-      return res.status(400).send({ error: "Clock out not found" });
-    }
-
-    const isValidDate = moment(clockOut, "HH:mm:ss DD/MM/YYYY", true).isValid();
-    if (!isValidDate) {
-      return res.status(400).send({ error: "Invalid date" });
-    }
-
-    const currentDate = timeSetter(clockOut);
+    const currentDate = timeSetter(moment());
     await req.staff.clockOut(currentDate);
 
     res.send();
