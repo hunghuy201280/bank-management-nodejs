@@ -67,7 +67,6 @@ const customerSchema = mongoose.Schema(
     },
     dateOfBirth: {
       type: Date,
-      required: true,
       set: dateSetter,
       get: dateGetter,
     },
@@ -106,7 +105,6 @@ const customerSchema = mongoose.Schema(
     },
     permanentResidence: {
       trim: true,
-      required: true,
       type: String,
     },
     email: {
@@ -124,6 +122,12 @@ const customerSchema = mongoose.Schema(
       type: Number,
       required: true,
       enum: [toArray(CustomerType)],
+    },
+    businessRegistrationCertificate: {
+      type: String,
+    },
+    companyRules: {
+      type: String,
     },
   },
   {

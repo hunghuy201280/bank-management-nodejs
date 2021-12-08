@@ -244,6 +244,45 @@ staffSchema.methods.clockOut = async function (clockOutDate) {
   await staff.save();
 };
 
+staffSchema.methods.isClockedInOrOut = function () {
+  const staff = this;
+  let isClockedIn = false;
+  let isClockedOut = false;
+  const today = moment().startOf("date");
+  const tomorrow = moment().add(1, "days").startOf("date");
+  let clockedInTime, clockedOutTime;
+  for (let i = 0; i < staff.timekeeping.length; i++) {
+    const cur = staff.timekeeping[i];
+    const curClockedInTime = cur.clockIn ? moment(cur.clockIn) : undefined;
+    const curClockedOutTime = cur.clockOut ? moment(cur.clockOut) : undefined;
+
+    // console.log(today, tomorrow, curClockedInTime, curClockedOutTime);
+    if (
+      isClockedIn == false &&
+      curClockedInTime != undefined &&
+      curClockedInTime.isBefore(tomorrow) &&
+      curClockedInTime.isAfter(today)
+    ) {
+      isClockedIn = true;
+      clockedInTime = curClockedInTime;
+    }
+    if (
+      isClockedOut == false &&
+      curClockedOutTime != undefined &&
+      curClockedOutTime.isBefore(tomorrow) &&
+      curClockedOutTime.isAfter(today)
+    ) {
+      isClockedOut = true;
+      clockedOutTime = curClockedOutTime;
+    }
+
+    if (isClockedIn == true && isClockedOut == true) {
+      break;
+    }
+  }
+  return { isClockedIn, isClockedOut, clockedInTime, clockedOutTime };
+};
+
 /**
  * Hash the password before save
  * only hash if password is modified

@@ -3,6 +3,7 @@ import LoanProfile from "../models/loan_profile.js";
 import express from "express";
 import * as log from "../utils/logger.js";
 import auth from "../middleware/auth.js";
+import { CustomerType } from "../utils/enums.js";
 
 const router = express.Router();
 
@@ -67,11 +68,35 @@ router.get("/customers", auth, async (req, res) => {
  */
 router.post("/customers", async (req, res) => {
   try {
+    const {
+      dateOfBirth,
+      permanentResidence,
+      businessRegistrationCertificate,
+      companyRules,
+      customerType,
+    } = req.body;
+
+    if (
+      customerType == CustomerType.Business &&
+      (!businessRegistrationCertificate || !companyRules)
+    ) {
+      throw new Error(
+        "Business customer must have businessRegistrationCertificate and companyRules fileds"
+      );
+    }
+    if (
+      customerType == CustomerType.Resident &&
+      (!dateOfBirth || !permanentResidence)
+    ) {
+      throw new Error(
+        "Business customer must have dateOfBirth and permanentResidence fileds"
+      );
+    }
     const customer = new Customer(req.body);
     await customer.save();
     res.send(customer);
   } catch (error) {
-    res.status(400).send({ error });
+    res.status(400).send({ error: error.message });
   }
 });
 

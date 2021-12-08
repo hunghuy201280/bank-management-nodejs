@@ -215,8 +215,7 @@ router.post("/staffs/login", async (req, res) => {
       throw new Error("This user is not working at this branch");
     }
     const token = await staff.getToken();
-    staff.timekeeping = undefined;
-    res.send({ staff, token });
+    res.send({ staff, token, clockInOut: staff.isClockedInOrOut() });
   } catch (err) {
     log.error(err);
 
@@ -272,5 +271,18 @@ router.post("/staffs/clock_out/", auth, async (req, res) => {
 });
 
 //#endregion clock out
+
+//#region get clock in/out time
+
+router.get("/staffs/clock_in_out_time", auth, async (req, res) => {
+  try {
+    res.send({ ...req.staff.isClockedInOrOut() });
+  } catch (err) {
+    log.error(err);
+
+    res.status(400).send({ error: err.message });
+  }
+});
+//#region get clock in/out time
 
 export default router;

@@ -173,30 +173,24 @@ router.get("/loan_profiles", auth, async (req, res) => {
       const splittedSortQuery = req.query.sortBy.split(":");
       sort[splittedSortQuery[0]] = splittedSortQuery[1] === "desc" ? -1 : 1;
     }
-
-    if (customerName) {
-      const profiles = await LoanProfile.find(match)
-        .populate("customer")
-        .skip(skip)
-        .limit(limit)
-        .sort(sort)
-        .exec();
-      const result = [];
-      for (const profile of profiles) {
-        log.print(profile);
-
-        if (profile.customer && profile.customer.name === customerName) {
-          result.push(profile);
-        }
-      }
-      return res.send(result);
-    }
-    const result = await LoanProfile.find(match)
+    const profiles = await LoanProfile.find(match)
+      .populate(["customer", "staff", "approver"])
       .skip(skip)
       .limit(limit)
       .sort(sort)
       .exec();
+    let result = [];
 
+    if (customerName) {
+      for (const profile of profiles) {
+        log.print(profile);
+        if (profile.customer && profile.customer.name === customerName) {
+          result.push(profile);
+        }
+      }
+    } else {
+      result = profiles;
+    }
     res.send(result);
   } catch (error) {
     log.error(error);

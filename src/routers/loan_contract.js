@@ -1,6 +1,7 @@
 import express from "express";
 import LoanContract from "../models/loan_contract.js";
 import LoanProfile from "../models/loan_profile.js";
+import { LoanType, LoanProfileStatus, StaffRole } from "../utils/enums.js";
 
 import auth from "../middleware/auth.js";
 import * as log from "../utils/logger.js";
@@ -21,6 +22,7 @@ router.post("/loan_contracts", auth, async (req, res) => {
   }
   const profile = await LoanProfile.findById(loanProfile);
   profile.approver = req.staff._id;
+  profile.loanStatus = LoanProfileStatus.Done;
   profile.save();
 
   try {

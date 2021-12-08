@@ -53,6 +53,13 @@ const branchInfoSchema = mongoose.Schema({
     type: String,
     required: true,
   },
+  branchBalance: {
+    type: Number,
+    required: true,
+    validate(value) {
+      if (value < 0) throw new Error("Balance can not be negative");
+    },
+  },
   branchCode: {
     type: String,
     required: true,
