@@ -124,6 +124,7 @@ router.post("/loan_profiles", auth, async (req, res) => {
     loanProf.loanApplicationNumber = await LoanProfile.getLoanProfileNumber();
     const loanProfile = new LoanProfile(loanProf);
     await loanProfile.save();
+    await loanProfile.populate(["customer", "staff"]);
     res.status(201).send(loanProfile);
   } catch (error) {
     res.status(400).send({

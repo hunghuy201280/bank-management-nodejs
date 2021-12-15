@@ -14,6 +14,7 @@ router.get("/customers", auth, async (req, res) => {
   try {
     const { phoneNumber, id, name, address, email, matchExact, isStartWith } =
       req.query;
+    console.log(`name ${name}`);
     const match = {};
     let startWith;
     if (isStartWith === "true") {
@@ -39,19 +40,22 @@ router.get("/customers", auth, async (req, res) => {
       }
     } else {
       if (phoneNumber) {
-        match.phoneNumber = { $regex: startWith + phoneNumber };
+        match.phoneNumber = {
+          $regex: startWith + phoneNumber,
+          $options: "i",
+        };
       }
       if (id) {
-        match._id = { $regex: startWith + id };
+        match._id = { $regex: startWith + id, $options: "i" };
       }
       if (name) {
-        match.name = { $regex: startWith + name };
+        match.name = { $regex: startWith + name, $options: "i" };
       }
       if (address) {
-        match.address = { $regex: startWith + address };
+        match.address = { $regex: startWith + address, $options: "i" };
       }
       if (email) {
-        match.email = { $regex: startWith + email };
+        match.email = { $regex: startWith + email, $options: "i" };
       }
     }
 

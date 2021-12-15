@@ -24,6 +24,7 @@ import mongoose from "mongoose";
  */
 const BImage = mongoose.model("BImage", {
   data: { type: Buffer, required: true },
+  fileName: { type: String, required: true, unique: true },
 });
 
 export default BImage;

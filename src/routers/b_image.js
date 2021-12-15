@@ -3,10 +3,11 @@ import multer from "multer";
 import sharp from "sharp";
 import express from "express";
 import auth from "../middleware/auth.js";
+import mongoose from "mongoose";
 const router = express.Router();
 const upload = multer({
   limits: {
-    fileSize: 1000000,
+    fileSize: 1000000000,
   },
   fileFilter(req, file, cb) {
     if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
@@ -30,11 +31,19 @@ router.post(
           .resize({ width: 250, height: 250 })
           .png()
           .toBuffer();
+        const _id = new mongoose.Types.ObjectId();
+        const orn = files[i].originalname;
+        const fileName = `${_id.toString()}_${orn.slice(
+          0,
+          orn.lastIndexOf(".")
+        )}.png`;
         const image = BImage({
+          _id,
           data: buffer,
+          fileName,
         });
         await image.save();
-        resultId.push(image._id);
+        resultId.push(image.fileName);
       }
 
       res.send({
@@ -46,14 +55,14 @@ router.post(
     }
   },
   (error, req, res, next) => {
-    res.status(400).send({ error: error.message });
+    res.status(400).send({ error: error.toString() });
   }
 );
 
-router.get("/images/:id", async (req, res) => {
+router.get("/images/:name", async (req, res) => {
   try {
-    const image = await BImage.findById(req.params.id);
-    if (!image) throw new Error(`Image ${req.params.id} not found`);
+    const image = await BImage.findOne({ fileName: req.params.name });
+    if (!image) throw new Error(`Image ${req.params.name} not found`);
     res.set("Content-Type", "image/png");
     res.send(image.data);
   } catch (error) {
