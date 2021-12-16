@@ -31,7 +31,6 @@ router.post("/loan_contracts", auth, async (req, res) => {
       loanProfile: profile,
       commitment,
       signatureImg,
-      contractNumber: await LoanContract.getContractNumber(),
     });
     log.print(newContract.loanProfile);
     await newContract.save();
@@ -98,7 +97,7 @@ router.get("/loan_contracts", auth, async (req, res) => {
         { path: "loanProfile.approver" },
         { path: "loanProfile.customer" },
         { path: "disburseCertificates" },
-        { path: "paymentReceipts" },
+        { path: "liquidationApplications" },
       ])
       .skip(skip)
       .limit(limit)
@@ -131,7 +130,7 @@ router.get("/loan_contracts", auth, async (req, res) => {
 
 // async function tempFunc() {
 //   const contracts = await LoanContract.find();
-//   const num = "HDVV.21.12.16.";
+//   const num = "HDVV.21.12.15.";
 //   let i = 1;
 //   for (const item of contracts) {
 //     item.contractNumber = num + i++;

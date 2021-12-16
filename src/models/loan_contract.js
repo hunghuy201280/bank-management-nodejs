@@ -5,6 +5,7 @@ import { StaffRole } from "../utils/enums.js";
 import LoanProfile from "./loan_profile.js";
 import BranchInfo from "./branch_info.js";
 import moment from "moment";
+import { LoanProfileStatus } from "../utils/enums.js";
 
 /**
  * @swagger
@@ -84,43 +85,54 @@ const loanContractSchema = mongoose.Schema(
     },
     contractNumber: {
       type: String,
-      required: true,
+      unique: true,
     },
   },
   {
     timestamps: true,
   }
 );
-loanContractSchema.virtual("paymentReceipts", {
-  ref: "PaymentReceipt",
+// loanContractSchema.virtual("paymentReceipts", {
+//   ref: "PaymentReceipt",
+//   localField: "_id",
+//   foreignField: "loanContract",
+// });
+loanContractSchema.virtual("disburseCertificates", {
+  ref: "DisburseCertificate",
   localField: "_id",
   foreignField: "loanContract",
 });
-loanContractSchema.virtual("disburseCertificates", {
-  ref: "DisburseCertificate",
+loanContractSchema.virtual("liquidationApplications", {
+  ref: "LiquidationApplication",
   localField: "_id",
   foreignField: "loanContract",
 });
 
 loanContractSchema.set("toObject", { virtuals: true });
 loanContractSchema.set("toJSON", { virtuals: true });
+
 loanContractSchema.methods.getDebt = async function () {
   const contract = this;
-  await contract.populate("paymentReceipts");
+  await contract.populate("liquidationApplications");
   await contract.populate("loanProfile");
   let result = 0;
 
-  for (const receipt of contract.paymentReceipts) {
-    result += receipt.amount;
+  for (const liquidation of contract.liquidationApplications) {
+    if (
+      liquidation.status == LoanProfileStatus.Pending ||
+      liquidation.status == LoanProfileStatus.Done
+    )
+      result += liquidation.amount;
   }
 
   return contract.loanProfile.moneyToLoan - result;
 };
 
-loanContractSchema.methods.canAddReceipt = async function (amount) {
+loanContractSchema.methods.canAddLiquidationApplication = async function (
+  amount
+) {
   const contract = this;
   const debt = await contract.getDebt();
-  console.log(debt - amount >= 0);
   return debt - amount >= 0;
 };
 
@@ -143,18 +155,25 @@ loanContractSchema.methods.canAddDisburseCertificate = async function (amount) {
   return remainingDisburse - amount >= 0;
 };
 
-loanContractSchema.statics.getContractNumber = async function () {
-  const today = moment().startOf("day");
+//auto generate number when the new contract is saved
+loanContractSchema.pre("save", async function (next) {
+  const contract = this;
+  if (contract.isNew) {
+    const today = moment().startOf("day");
 
-  const num = await LoanContract.count({
-    createdAt: {
-      $gte: today.toDate(),
-      $lte: moment(today).endOf("day").toDate(),
-    },
-  });
-  return `HDVV.${today.year().toString().substring(2)}.${
-    today.month() + 1
-  }.${today.date()}.${num + 1}`;
-};
+    const num = await LoanContract.count({
+      createdAt: {
+        $gte: today.toDate(),
+        $lte: moment(today).endOf("day").toDate(),
+      },
+    });
+    const contractNumber = `HDVV.${today.year().toString().substring(2)}.${
+      today.month() + 1
+    }.${today.date()}.${num + 1}`;
+    contract.contractNumber = contractNumber;
+  }
+  next();
+});
+
 const LoanContract = mongoose.model("LoanContract", loanContractSchema);
 export default LoanContract;
