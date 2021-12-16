@@ -31,6 +31,7 @@ router.post("/loan_contracts", auth, async (req, res) => {
       loanProfile: profile,
       commitment,
       signatureImg,
+      contractNumber: await LoanContract.getContractNumber(),
     });
     log.print(newContract.loanProfile);
     await newContract.save();
@@ -127,4 +128,16 @@ router.get("/loan_contracts", auth, async (req, res) => {
     res.status(400).send({ error });
   }
 });
+
+// async function tempFunc() {
+//   const contracts = await LoanContract.find();
+//   const num = "HDVV.21.12.16.";
+//   let i = 1;
+//   for (const item of contracts) {
+//     item.contractNumber = num + i++;
+//     console.log(item.contractNumber);
+//     await item.save();
+//   }
+// }
+// tempFunc();
 export default router;

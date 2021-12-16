@@ -4,6 +4,8 @@ import { toArray } from "../utils/utils.js";
 import { StaffRole } from "../utils/enums.js";
 import LoanProfile from "./loan_profile.js";
 import BranchInfo from "./branch_info.js";
+import moment from "moment";
+
 /**
  * @swagger
  * components:
@@ -80,6 +82,10 @@ const loanContractSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    contractNumber: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: true,
@@ -135,6 +141,20 @@ loanContractSchema.methods.canAddDisburseCertificate = async function (amount) {
   const remainingDisburse = await contract.getRemainingDisburse();
   console.log(remainingDisburse - amount >= 0);
   return remainingDisburse - amount >= 0;
+};
+
+loanContractSchema.statics.getContractNumber = async function () {
+  const today = moment().startOf("day");
+
+  const num = await LoanContract.count({
+    createdAt: {
+      $gte: today.toDate(),
+      $lte: moment(today).endOf("day").toDate(),
+    },
+  });
+  return `HDVV.${today.year().toString().substring(2)}.${
+    today.month() + 1
+  }.${today.date()}.${num + 1}`;
 };
 const LoanContract = mongoose.model("LoanContract", loanContractSchema);
 export default LoanContract;
