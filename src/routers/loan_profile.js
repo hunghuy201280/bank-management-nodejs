@@ -153,7 +153,9 @@ router.get("/loan_profiles", auth, async (req, res) => {
     }
     const { id, customerName, moneyToLoan, loanType, createdAt, loanStatus } =
       req.body;
-    const match = {};
+    const match = {
+      loanStatus: { $ne: LoanProfileStatus.Deleted },
+    };
     if (moneyToLoan) {
       match.moneyToLoan = moneyToLoan;
     }
