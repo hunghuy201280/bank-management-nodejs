@@ -3,7 +3,7 @@ import express from "express";
 import * as log from "../utils/logger.js";
 import auth from "../middleware/auth.js";
 import Customer from "../models/customer.js";
-
+import { LoanType, LoanProfileStatus, StaffRole } from "../utils/enums.js";
 const router = express.Router();
 
 //#region params
@@ -213,29 +213,18 @@ router.get("/loan_profiles/:id", auth, async function (req, res) {
  */
 router.patch("/loan_profiles/status/:id", auth, async function (req, res) {
   try {
-    let limit = 20,
-      skip = 0;
-    if (req.query.limit) {
-      limit = parseInt(req.query.limit);
-      if (limit == 0) limit = 20;
-    }
-    if (req.query.skip) {
-      skip = parseInt(req.query.skip);
-    }
-
-    const match = {};
-    const sort = {};
-    if (req.query.sortBy) {
-      const splittedSortQuery = req.query.sortBy.split(":");
-      sort[splittedSortQuery[0]] = splittedSortQuery[1] === "desc" ? -1 : 1;
+    const { status } = req.body;
+    if (
+      req.loanProfile.loanStatus == LoanProfileStatus.Pending ||
+      status == LoanProfileStatus.Deleted
+    ) {
+      req.loanProfile.loanStatus = status;
+      req.loanProfile.save();
+    } else {
+      res.status(403).send({ error: "Forbidden" });
     }
 
-    const result = await LoanProfile.find(match)
-      .skip(skip)
-      .limit(limit)
-      .sort(sort)
-      .exec();
-    res.send(result);
+    res.send();
   } catch (error) {
     log.error(error);
     res.status(400).send({ error });
