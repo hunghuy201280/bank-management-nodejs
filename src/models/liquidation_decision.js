@@ -31,7 +31,7 @@ const liquidationDecisionSchema = mongoose.Schema(
     },
     paymentReceipt: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "LiquidationDecision",
+      ref: "PaymentReceipt",
     },
   },
   {

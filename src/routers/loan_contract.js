@@ -97,14 +97,24 @@ router.get("/loan_contracts", auth, async (req, res) => {
         { path: "loanProfile.approver" },
         { path: "loanProfile.customer" },
         { path: "disburseCertificates" },
-        { path: "liquidationApplications" },
+        {
+          path: "liquidationApplications",
+          populate: {
+            path: "decision",
+            populate: {
+              path: "paymentReceipt",
+            },
+          },
+        },
       ])
       .skip(skip)
       .limit(limit)
       .sort(sort)
       .exec();
-
-    contracts = contracts.filter((item) => item.loanProfile != null);
+    // for (const tempCon of contracts) {
+    //   for (const tempLiq of tempCon.liquidationApplications) {
+    //   }
+    // }
     contracts = contracts.filter((item) => {
       const staffFilter = staffName
         ? item.loanProfile.staff.name.startsWith(staffName)
@@ -124,7 +134,7 @@ router.get("/loan_contracts", auth, async (req, res) => {
     res.send(contracts);
   } catch (error) {
     log.error(error);
-    res.status(400).send({ error });
+    res.status(400).send({ error: error.message });
   }
 });
 
