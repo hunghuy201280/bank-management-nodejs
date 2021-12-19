@@ -1,4 +1,5 @@
 import LoanProfile from "../models/loan_profile.js";
+import LoanContract from "../models/loan_contract.js";
 import express from "express";
 import * as log from "../utils/logger.js";
 import auth from "../middleware/auth.js";
@@ -209,6 +210,20 @@ router.get("/loan_profiles/:id", auth, async function (req, res) {
 
   res.send(req.loanProfile);
 });
+
+/**
+ * Check if loan profile already had contract
+ */
+router.get(
+  "/loan_profiles/has_contract/:idLoan",
+  auth,
+  async function (req, res) {
+    const count = await LoanContract.count({
+      "loanProfile._id": req.params.idLoan,
+    });
+    res.send(count > 0);
+  }
+);
 
 /**
  * update loan profile status
