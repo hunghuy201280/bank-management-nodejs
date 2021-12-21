@@ -114,9 +114,13 @@ loanContractSchema.set("toJSON", { virtuals: true });
 loanContractSchema.methods.getDebt = async function () {
   const contract = this;
   await contract.populate("liquidationApplications");
-  await contract.populate("loanProfile");
+  await contract.populate("disburseCertificates");
   let result = 0;
 
+  let disburseAmount = 0;
+  for (const disburse of contract.disburseCertificates) {
+    disburseAmount += disburse.amount;
+  }
   for (const liquidation of contract.liquidationApplications) {
     if (
       liquidation.status == LoanProfileStatus.Pending ||
@@ -125,7 +129,7 @@ loanContractSchema.methods.getDebt = async function () {
       result += liquidation.amount;
   }
 
-  return contract.loanProfile.moneyToLoan - result;
+  return disburseAmount - result;
 };
 
 loanContractSchema.methods.canAddLiquidationApplication = async function (

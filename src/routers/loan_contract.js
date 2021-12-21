@@ -32,8 +32,25 @@ router.post("/loan_contracts", auth, async (req, res) => {
       commitment,
       signatureImg,
     });
+
     log.print(newContract.loanProfile);
     await newContract.save();
+    await newContract.populate([
+      { path: "loanProfile.staff" },
+      { path: "loanProfile.approver" },
+      { path: "loanProfile.customer" },
+      { path: "disburseCertificates" },
+      {
+        path: "liquidationApplications",
+        populate: {
+          path: "decision",
+          populate: {
+            path: "paymentReceipt",
+          },
+        },
+      },
+    ]);
+
     res.status(201).send(newContract);
   } catch (error) {
     log.error(error);
