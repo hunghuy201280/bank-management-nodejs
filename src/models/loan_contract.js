@@ -107,6 +107,16 @@ loanContractSchema.virtual("liquidationApplications", {
   localField: "_id",
   foreignField: "loanContract",
 });
+loanContractSchema.virtual("exemptionApplications", {
+  ref: "ExemptionApplication",
+  localField: "_id",
+  foreignField: "loanContract",
+});
+loanContractSchema.virtual("extensionApplications", {
+  ref: "ExtensionApplication",
+  localField: "_id",
+  foreignField: "loanContract",
+});
 
 loanContractSchema.set("toObject", { virtuals: true });
 loanContractSchema.set("toJSON", { virtuals: true });
@@ -115,21 +125,38 @@ loanContractSchema.methods.getDebt = async function () {
   const contract = this;
   await contract.populate("liquidationApplications");
   await contract.populate("disburseCertificates");
-  let result = 0;
-
+  await contract.populate("exemptionApplications");
+  let liquidationAmount = 0;
+  let exemptionAmount = 0;
   let disburseAmount = 0;
+
+  //#region calc disburse amount
   for (const disburse of contract.disburseCertificates) {
     disburseAmount += disburse.amount;
   }
+  //#endregion
+
+  //#region calc liquidation amount
   for (const liquidation of contract.liquidationApplications) {
     if (
       liquidation.status == LoanProfileStatus.Pending ||
       liquidation.status == LoanProfileStatus.Done
     )
-      result += liquidation.amount;
+      liquidationAmount += liquidation.amount;
   }
+  //#endregion
 
-  return disburseAmount - result;
+  //#region calc exemption amount
+  for (const it of contract.exemptionApplications) {
+    if (
+      it.status == LoanProfileStatus.Pending ||
+      it.status == LoanProfileStatus.Done
+    )
+      exemptionAmount += it.amount;
+  }
+  //#endregion
+
+  return disburseAmount - liquidationAmount - exemptionAmount;
 };
 
 loanContractSchema.methods.canAddLiquidationApplication = async function (

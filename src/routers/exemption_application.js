@@ -1,35 +1,20 @@
 import Customer from "../models/customer.js";
 import LoanProfile from "../models/loan_profile.js";
-import LiquidationApplication from "../models/liquidation_application.js";
-import LiquidationDecision from "../models/liquidation_decision.js";
+import ExemptionApplication from "../models/exemption_application.js";
+import ExemptionDecision from "../models/exemption_decision.js";
 import express from "express";
 import * as log from "../utils/logger.js";
 import auth from "../middleware/auth.js";
 import { LoanProfileStatus } from "../utils/enums.js";
 const router = express.Router();
-//#region params
-router.param("id", async (req, res, next, id) => {
-  try {
-    const liquidationApplication = await LiquidationApplication.findById(id);
-    if (!liquidationApplication) {
-      throw new Error("This liquidation application doesn't exist");
-    }
-    req.item = liquidationApplication;
-    next();
-  } catch (err) {
-    log.error(err);
-    res.status(404).send({ error: err.toString() });
-  }
-});
-//#endregion
 
 /**
  * add liquidation_applications
  */
-router.post("/liquidation_applications", auth, async (req, res) => {
+router.post("/exemption_applications", auth, async (req, res) => {
   try {
     const { loanContract, amount, reason, signatureImg } = req.body;
-    const application = new LiquidationApplication({
+    const application = new ExemptionApplication({
       loanContract,
       amount,
       reason,
@@ -43,10 +28,10 @@ router.post("/liquidation_applications", auth, async (req, res) => {
   }
 });
 
-router.post("/liquidation_applications/decision", auth, async (req, res) => {
+router.post("/exemption_applications/decision", auth, async (req, res) => {
   try {
     const { applicationId, BODSignature } = req.body;
-    const application = await LiquidationApplication.findById(applicationId);
+    const application = await ExemptionApplication.findById(applicationId);
     if (!application) {
       res.status(404).send({ error: `Application ${applicationId} not found` });
       return;
@@ -56,7 +41,7 @@ router.post("/liquidation_applications/decision", auth, async (req, res) => {
         error: "This application was rejected",
       });
     }
-    application.status = 2;
+    application.status = LoanProfileStatus.Done;
     if (application.decision) {
       throw new Error("Already had decision");
     }
@@ -64,7 +49,7 @@ router.post("/liquidation_applications/decision", auth, async (req, res) => {
     if (!BODSignature) {
       throw new Error("Invalid BODSignature");
     }
-    const decision = new LiquidationDecision({
+    const decision = new ExemptionDecision({
       reason: application.reason,
       amount: application.amount,
       BODSignature,
@@ -79,16 +64,16 @@ router.post("/liquidation_applications/decision", auth, async (req, res) => {
     res.status(400).send({ error: error.message });
   }
 });
-router.post("/liquidation_applications/reject", auth, async (req, res) => {
+router.post("/exemption_applications/reject", auth, async (req, res) => {
   try {
     const { applicationId } = req.body;
-    const application = await LiquidationApplication.findById(applicationId);
+    const application = await ExemptionApplication.findById(applicationId);
     if (!application) {
       return res
         .status(404)
         .send({ error: `Application ${applicationId} not found` });
     }
-    application.status = 3;
+    application.status = LoanProfileStatus.Rejected;
     await application.save();
     res.send();
   } catch (error) {

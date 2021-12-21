@@ -12,6 +12,7 @@ import customerRouter from "./routers/customer.js";
 import paymentReceiptRouter from "./routers/payment_receipt.js";
 import disburseCertificateRouter from "./routers/disburse_certificate.js";
 import liquidationApplicationRouter from "./routers/liquidation_application.js";
+import exemptionApplicationRouter from "./routers/exemption_application.js";
 import cors from "cors";
 const app = express();
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
@@ -27,5 +28,6 @@ app.use(customerRouter);
 app.use(paymentReceiptRouter);
 app.use(disburseCertificateRouter);
 app.use(liquidationApplicationRouter);
+app.use(exemptionApplicationRouter);
 
 export default app;

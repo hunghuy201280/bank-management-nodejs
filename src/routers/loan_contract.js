@@ -128,10 +128,8 @@ router.get("/loan_contracts", auth, async (req, res) => {
       .limit(limit)
       .sort(sort)
       .exec();
-    // for (const tempCon of contracts) {
-    //   for (const tempLiq of tempCon.liquidationApplications) {
-    //   }
-    // }
+    //add debt attr
+
     contracts = contracts.filter((item) => {
       const staffFilter = staffName
         ? item.loanProfile.staff.name.startsWith(staffName)
@@ -148,12 +146,77 @@ router.get("/loan_contracts", auth, async (req, res) => {
     if (contracts.length == 0) {
       return res.status(404).send();
     }
+
+    // let debts = [];
+    // for (let tempCon of contracts) {
+    //   debts.push(await tempCon.getDebt());
+    // }
+    // let contractObjects = JSON.parse(JSON.stringify(contracts));
+
+    // for (let i = 0; i < contractObjects.length; i++) {
+    //   contractObjects[i].remainingDebt = debts[i];
+    // }
+
     res.send(contracts);
   } catch (error) {
     log.error(error);
     res.status(400).send({ error: error.message });
   }
 });
+
+//#region get 1 contract with id
+router.get("/loan_contracts/:id", auth, async (req, res) => {
+  try {
+    const contract = await LoanContract.findById(req.params.id)
+      .populate([
+        { path: "loanProfile.staff" },
+        { path: "loanProfile.approver" },
+        { path: "loanProfile.customer" },
+        { path: "disburseCertificates" },
+        {
+          path: "exemptionApplications",
+          populate: {
+            path: "decision",
+          },
+        },
+        {
+          path: "liquidationApplications",
+          populate: {
+            path: "decision",
+            populate: {
+              path: "paymentReceipt",
+            },
+          },
+        },
+      ])
+      .exec();
+    //add debt attr
+    // let debt = await contract.getDebt();
+    // const contractObject = JSON.parse(JSON.stringify(contract));
+    // contractObject.remainingDebt = debt;
+
+    res.send(contract);
+  } catch (error) {
+    log.error(error);
+    res.status(400).send({ error: error.message });
+  }
+});
+
+//#endregion
+
+//#region get debt
+
+router.get("/loan_contracts/debt/:id", auth, async (req, res) => {
+  try {
+    const contract = await LoanContract.findById(req.params.id);
+    res.status(200).json(await contract.getDebt());
+  } catch (error) {
+    log.error(error);
+    res.status(400).send({ error: error.message });
+  }
+});
+
+//#endregion
 
 // async function tempFunc() {
 //   const contracts = await LoanContract.find();
