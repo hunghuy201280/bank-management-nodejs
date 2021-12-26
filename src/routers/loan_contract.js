@@ -2,7 +2,7 @@ import express from "express";
 import LoanContract from "../models/loan_contract.js";
 import LoanProfile from "../models/loan_profile.js";
 import { LoanType, LoanProfileStatus, StaffRole } from "../utils/enums.js";
-
+import moment from "moment";
 import auth from "../middleware/auth.js";
 import * as log from "../utils/logger.js";
 const router = express.Router();
@@ -68,83 +68,170 @@ router.get("/loan_contracts", auth, async (req, res) => {
       skip = 0;
     if (req.query.limit) {
       limit = parseInt(req.query.limit);
-      if (limit == 0) limit = 20;
+      if (limit <= 0) limit = 20;
     }
     if (req.query.skip) {
       skip = parseInt(req.query.skip);
     }
     const {
-      contractId,
+      contractNumber,
       staffName,
       approver,
       loanType,
       createdAt,
-      profileId,
+      profileNumber,
       moneyToLoan,
       customerPhone,
-    } = req.body;
+    } = req.query;
     const matchContract = {};
     const matchProfile = {};
     if (moneyToLoan) {
-      matchProfile.moneyToLoan = moneyToLoan;
+      matchProfile["loanProfile.moneyToLoan"] = parseFloat(moneyToLoan);
     }
     if (loanType) {
-      matchProfile["loanProfile.loanType"] = loanType;
+      matchProfile["loanProfile.loanType"] = parseInt(loanType);
     }
     if (createdAt) {
-      matchContract.createdAt = createdAt;
+      const queryDate = moment(createdAt).startOf("day");
+      matchContract.createdAt = {
+        $gte: queryDate.toDate(),
+        $lte: queryDate.endOf("day").toDate(),
+      };
     }
-    if (contractId) {
-      matchContract._id = contractId;
+    if (contractNumber) {
+      matchContract.contractNumber = { $regex: contractNumber, $options: "i" };
     }
-    if (profileId) {
-      matchProfile["loanProfile._id"] = profileId;
+    if (profileNumber) {
+      matchProfile["loanProfile.loanApplicationNumber"] = {
+        $regex: profileNumber,
+        $options: "i",
+      };
     }
     const sort = {};
     if (req.query.sortBy) {
       const splittedSortQuery = req.query.sortBy.split(":");
       sort[splittedSortQuery[0]] = splittedSortQuery[1] === "desc" ? -1 : 1;
     }
-    let contracts = await LoanContract.find({
-      ...matchContract,
-      ...matchProfile,
-    })
-      .populate([
-        { path: "loanProfile.staff" },
-        { path: "loanProfile.approver" },
-        { path: "loanProfile.customer" },
-        { path: "disburseCertificates" },
-        {
-          path: "liquidationApplications",
-          populate: [
-            {
-              path: "decision",
-              populate: {
-                path: "paymentReceipt",
+
+    const contracts = await LoanContract.aggregate()
+      .lookup({
+        from: "staffs",
+        as: "staffs",
+        let: {
+          queryStaffName: staffName ?? "",
+          profileStaffId: "$loanProfile.staff",
+        },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  {
+                    $regexMatch: {
+                      input: "$name",
+                      regex: "$$queryStaffName",
+                      options: "i",
+                    },
+                  },
+
+                  { $eq: ["$_id", "$$profileStaffId"] },
+                ],
               },
             },
-          ],
+          },
+        ],
+      })
+      .lookup({
+        from: "staffs",
+        as: "approvers",
+        let: {
+          approverId: "$loanProfile.approver",
+          queryApproverName: approver ?? "",
         },
-      ])
-      .skip(skip)
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  {
+                    $regexMatch: {
+                      input: "$name",
+                      regex: "$$queryApproverName",
+                      options: "i",
+                    },
+                  },
+
+                  { $eq: ["$_id", "$$approverId"] },
+                ],
+              },
+            },
+          },
+        ],
+      })
+      .lookup({
+        from: "customers",
+        as: "customers",
+        let: {
+          customerId: "$loanProfile.customer",
+          customerPhone: customerPhone ?? "",
+        },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  {
+                    $regexMatch: {
+                      input: "$name",
+                      regex: "$$customerPhone",
+                      options: "i",
+                    },
+                  },
+
+                  { $eq: ["$_id", "$$customerId"] },
+                ],
+              },
+            },
+          },
+        ],
+      })
+      .match({
+        ...matchContract,
+        ...matchProfile,
+      })
+      .match({
+        staffs: {
+          $ne: [],
+        },
+        approvers: {
+          $ne: [],
+        },
+      })
       .limit(limit)
-      .sort(sort)
-      .exec();
-    //add debt attr
+      .sort(sort);
+    await LoanContract.populate(contracts, [
+      "loanProfile.staff",
+      "loanProfile.approver",
+      "loanProfile.customer",
+      { path: "disburseCertificates" },
+      {
+        path: "liquidationApplications",
+        populate: [
+          {
+            path: "decision",
+            populate: {
+              path: "paymentReceipt",
+            },
+          },
+        ],
+      },
+    ]);
 
-    contracts = contracts.filter((item) => {
-      const staffFilter = staffName
-        ? item.loanProfile.staff.name.startsWith(staffName)
-        : true;
-      const approverFilter = approver
-        ? item.loanProfile.approver.name.startsWith(approver)
-        : true;
-      const customerFilter = customerPhone
-        ? item.loanProfile.customer.phoneNumber.startsWith(customerPhone)
-        : true;
-      return staffFilter && customerFilter && approverFilter;
-    });
-
+    for (const item of contracts) {
+      delete item.staffs;
+      delete item.approvers;
+      delete item.customers;
+    }
     if (contracts.length == 0) {
       return res.status(404).send();
     }
@@ -156,10 +243,19 @@ router.get("/loan_contracts", auth, async (req, res) => {
   }
 });
 
-//#region get 1 contract with id
-router.get("/loan_contracts/:id", auth, async (req, res) => {
+//#region get 1 contract with id or number
+router.get("/loan_contracts/one", auth, async (req, res) => {
   try {
-    const contract = await LoanContract.findById(req.params.id)
+    const allowSearch = ["contractNumber", "_id"];
+    const match = {};
+    for (const temp in req.query) {
+      const str = temp.toString();
+      if (allowSearch.includes(str)) {
+        match[str] = req.query[str];
+      }
+    }
+    log.print(match);
+    const contract = await LoanContract.findOne(match)
       .populate([
         { path: "loanProfile.staff" },
         { path: "loanProfile.approver" },
@@ -182,11 +278,9 @@ router.get("/loan_contracts/:id", auth, async (req, res) => {
         },
       ])
       .exec();
-    //add debt attr
-    // let debt = await contract.getDebt();
-    // const contractObject = JSON.parse(JSON.stringify(contract));
-    // contractObject.remainingDebt = debt;
-
+    if (!contract) {
+      return res.status(404).send();
+    }
     res.send(contract);
   } catch (error) {
     log.error(error);
