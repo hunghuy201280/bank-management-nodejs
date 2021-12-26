@@ -96,4 +96,57 @@ router.post("/liquidation_applications/reject", auth, async (req, res) => {
     res.status(400).send({ error: error.message });
   }
 });
+
+router.get("/liquidation_applications", auth, async (req, res) => {
+  try {
+    const allowSearch = [
+      "contractNumber",
+      "applicationNumber",
+      "status",
+      "createdAt",
+    ];
+    const match = {};
+    for (const temp in req.query) {
+      const str = temp.toString();
+      if (allowSearch.includes(str)) {
+        match[str] = req.query[str];
+      }
+    }
+    const sort = {};
+    if (req.query.sortBy) {
+      const splittedSortQuery = req.query.sortBy.split(":");
+      sort[splittedSortQuery[0]] = splittedSortQuery[1] === "desc" ? -1 : 1;
+    }
+
+    let limit = 20,
+      skip = 0;
+    if (req.query.limit) {
+      limit = parseInt(req.query.limit);
+      if (limit == 0) limit = 20;
+    }
+    if (req.query.skip) {
+      skip = parseInt(req.query.skip);
+    }
+
+    let applications = await LiquidationApplication.find(match)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .populate(["loanContract", "decision"]);
+
+    //filter by contract number if needed
+    if (match.contractNumber) {
+      applications = applications.filter((it) => {
+        return it.loanContract.contractNumber == match.contractNumber;
+      });
+    }
+
+    if (!applications) {
+      return res.status(404).send();
+    }
+    res.send(applications);
+  } catch (e) {
+    res.status(400).send({ error: e.toString() });
+  }
+});
 export default router;

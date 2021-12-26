@@ -6,7 +6,7 @@ import { toArray } from "../utils/utils.js";
 import LoanContract from "./loan_contract.js";
 import PaymentReceipt from "./payment_receipt.js";
 import moment from "moment";
-const exemptionDecisionSchema = mongoose.Schema(
+const extensionDecisionSchema = mongoose.Schema(
   {
     reason: {
       type: String,
@@ -29,6 +29,10 @@ const exemptionDecisionSchema = mongoose.Schema(
       type: String,
       unique: true,
     },
+    duration: {
+      type: Number,
+      required: true,
+    },
   },
   {
     timestamps: true,
@@ -36,18 +40,18 @@ const exemptionDecisionSchema = mongoose.Schema(
 );
 
 //auto generate number when the new decision is saved
-exemptionDecisionSchema.pre("save", async function (next) {
+extensionDecisionSchema.pre("save", async function (next) {
   const decision = this;
   if (decision.isNew) {
     const today = moment().startOf("day");
 
-    const num = await ExemptionDecision.count({
+    const num = await ExtensionDecision.count({
       createdAt: {
         $gte: today.toDate(),
         $lte: moment(today).endOf("day").toDate(),
       },
     });
-    const decisionNumber = `QDMG.${today.year().toString().substring(2)}.${
+    const decisionNumber = `QDGH.${today.year().toString().substring(2)}.${
       today.month() + 1
     }.${today.date()}.${num + 1}`;
     decision.decisionNumber = decisionNumber;
@@ -55,9 +59,9 @@ exemptionDecisionSchema.pre("save", async function (next) {
   next();
 });
 
-const ExemptionDecision = mongoose.model(
-  "ExemptionDecision",
-  exemptionDecisionSchema
+const ExtensionDecision = mongoose.model(
+  "ExtensionDecision",
+  extensionDecisionSchema
 );
 
-export default ExemptionDecision;
+export default ExtensionDecision;

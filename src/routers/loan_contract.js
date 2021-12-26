@@ -116,12 +116,14 @@ router.get("/loan_contracts", auth, async (req, res) => {
         { path: "disburseCertificates" },
         {
           path: "liquidationApplications",
-          populate: {
-            path: "decision",
-            populate: {
-              path: "paymentReceipt",
+          populate: [
+            {
+              path: "decision",
+              populate: {
+                path: "paymentReceipt",
+              },
             },
-          },
+          ],
         },
       ])
       .skip(skip)
@@ -146,16 +148,6 @@ router.get("/loan_contracts", auth, async (req, res) => {
     if (contracts.length == 0) {
       return res.status(404).send();
     }
-
-    // let debts = [];
-    // for (let tempCon of contracts) {
-    //   debts.push(await tempCon.getDebt());
-    // }
-    // let contractObjects = JSON.parse(JSON.stringify(contracts));
-
-    // for (let i = 0; i < contractObjects.length; i++) {
-    //   contractObjects[i].remainingDebt = debts[i];
-    // }
 
     res.send(contracts);
   } catch (error) {
