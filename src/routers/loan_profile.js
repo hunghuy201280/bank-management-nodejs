@@ -5,6 +5,8 @@ import * as log from "../utils/logger.js";
 import auth from "../middleware/auth.js";
 import Customer from "../models/customer.js";
 import { LoanType, LoanProfileStatus, StaffRole } from "../utils/enums.js";
+import moment from "moment";
+
 const router = express.Router();
 
 //#region params
@@ -143,59 +145,93 @@ router.post("/loan_profiles", auth, async (req, res) => {
  */
 router.get("/loan_profiles", auth, async (req, res) => {
   try {
-    let limit = 20,
-      skip = 0;
-    if (req.query.limit) {
-      limit = parseInt(req.query.limit);
-      if (limit == 0) limit = 20;
-    }
-    if (req.query.skip) {
-      skip = parseInt(req.query.skip);
-    }
-    const { id, customerName, moneyToLoan, loanType, createdAt, loanStatus } =
-      req.body;
+    const {
+      profileNumber,
+      customerName,
+      moneyToLoan,
+      loanType,
+      createdAt,
+      loanStatus,
+      limit,
+      skip,
+      sortBy,
+    } = req.query;
     const match = {
       loanStatus: { $ne: LoanProfileStatus.Deleted },
     };
+    if (loanStatus) {
+      match.loanStatus = parseInt(loanStatus);
+    }
+    if (profileNumber) {
+      match.loanApplicationNumber = { $regex: profileNumber, $options: "i" };
+    }
     if (moneyToLoan) {
-      match.moneyToLoan = moneyToLoan;
+      match.moneyToLoan = parseFloat(moneyToLoan);
     }
     if (loanType) {
-      match.loanType = loanType;
-    }
-    if (loanStatus) {
-      match.loanStatus = loanStatus;
+      match.loanType = parseInt(loanType);
     }
     if (createdAt) {
-      match.createdAt = createdAt;
+      const queryDate = moment(createdAt).startOf("day");
+      match.createdAt = {
+        $gte: queryDate.toDate(),
+        $lte: queryDate.endOf("day").toDate(),
+      };
     }
-    if (id) {
-      match._id = id;
-    }
-    const sort = {};
-    if (req.query.sortBy) {
-      const splittedSortQuery = req.query.sortBy.split(":");
+
+    const sort = {
+      createdAt: -1,
+    };
+    if (sortBy) {
+      const splittedSortQuery = sortBy.split(":");
       sort[splittedSortQuery[0]] = splittedSortQuery[1] === "desc" ? -1 : 1;
     }
-    const profiles = await LoanProfile.find(match)
-      .populate(["customer", "staff", "approver"])
-      .skip(skip)
-      .limit(limit)
-      .sort(sort)
-      .exec();
-    let result = [];
 
-    if (customerName) {
-      for (const profile of profiles) {
-        log.print(profile);
-        if (profile.customer && profile.customer.name === customerName) {
-          result.push(profile);
-        }
-      }
-    } else {
-      result = profiles;
+    const joinCustomer = {
+      from: "customers",
+      as: "customers",
+      let: {
+        queryCustomerName: customerName ?? "",
+        customerId: "$customer",
+      },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                {
+                  $regexMatch: {
+                    input: "$name",
+                    regex: "$$queryCustomerName",
+                    options: "i",
+                  },
+                },
+                {
+                  $eq: ["$_id", "$$customerId"],
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+    const profiles = await LoanProfile.aggregate()
+      .lookup(joinCustomer)
+      .match({
+        ...match,
+        customers: {
+          $ne: [],
+        },
+      })
+      .sort(sort)
+      .skip(parseInt(skip) || 0)
+      .limit(parseInt(limit) || 20);
+    for (const item of profiles) {
+      delete item.customers;
     }
-    res.send(result);
+    await LoanProfile.populate(profiles, ["customer", "staff", "approver"]);
+
+    res.send(profiles);
   } catch (error) {
     log.error(error);
     res.status(400).send({ error });

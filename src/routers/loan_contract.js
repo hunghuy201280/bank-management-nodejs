@@ -207,8 +207,9 @@ router.get("/loan_contracts", auth, async (req, res) => {
           $ne: [],
         },
       })
-      .limit(limit)
-      .sort(sort);
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
     await LoanContract.populate(contracts, [
       "loanProfile.staff",
       "loanProfile.approver",
