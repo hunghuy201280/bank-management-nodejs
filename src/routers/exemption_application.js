@@ -1,11 +1,14 @@
 import Customer from "../models/customer.js";
 import LoanProfile from "../models/loan_profile.js";
+import LoanContract from "../models/loan_contract.js";
 import ExemptionApplication from "../models/exemption_application.js";
 import ExemptionDecision from "../models/exemption_decision.js";
 import express from "express";
 import * as log from "../utils/logger.js";
 import auth from "../middleware/auth.js";
 import { LoanProfileStatus } from "../utils/enums.js";
+import moment from "moment";
+
 const router = express.Router();
 
 /**
@@ -85,50 +88,84 @@ router.post("/exemption_applications/reject", auth, async (req, res) => {
 //get applications
 router.get("/exemption_applications", auth, async (req, res) => {
   try {
-    const allowSearch = [
-      "contractNumber",
-      "applicationNumber",
-      "status",
-      "createdAt",
-    ];
-    const match = {};
-    for (const temp in req.query) {
-      const str = temp.toString();
-      if (allowSearch.includes(str)) {
-        match[str] = req.query[str];
-      }
+    const {
+      contractNumber,
+      applicationNumber,
+      status,
+      createdAt,
+      limit,
+      sortBy,
+      skip,
+    } = req.query;
+    const match = {
+      status: { $ne: LoanProfileStatus.Deleted },
+    };
+    if (applicationNumber) {
+      match.applicationNumber = { $regex: applicationNumber, $options: "i" };
     }
-    const sort = {};
-    if (req.query.sortBy) {
-      const splittedSortQuery = req.query.sortBy.split(":");
+    if (status) {
+      match.status = parseInt(status);
+    }
+
+    if (createdAt) {
+      const queryDate = moment(createdAt).startOf("day");
+      match.createdAt = {
+        $gte: queryDate.toDate(),
+        $lte: queryDate.endOf("day").toDate(),
+      };
+    }
+
+    const sort = {
+      createdAt: -1,
+    };
+    if (sortBy) {
+      const splittedSortQuery = sortBy.split(":");
       sort[splittedSortQuery[0]] = splittedSortQuery[1] === "desc" ? -1 : 1;
     }
 
-    let limit = 20,
-      skip = 0;
-    if (req.query.limit) {
-      limit = parseInt(req.query.limit);
-      if (limit == 0) limit = 20;
-    }
-    if (req.query.skip) {
-      skip = parseInt(req.query.skip);
-    }
-
-    let applications = await ExemptionApplication.find(match)
+    const joinLoanContract = {
+      from: LoanContract.collection.collectionName,
+      as: "contracts",
+      let: {
+        contractId: "$loanContract",
+        queryContractNumber: contractNumber ?? "",
+      },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                {
+                  $regexMatch: {
+                    input: "$contractNumber",
+                    regex: "$$queryContractNumber",
+                    options: "i",
+                  },
+                },
+                {
+                  $eq: ["$_id", "$$contractId"],
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+    const applications = await ExemptionApplication.aggregate()
+      .lookup(joinLoanContract)
+      .match({ ...match, contracts: { $ne: [] } })
       .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .populate(["loanContract", "decision"]);
+      .skip(parseInt(skip) || 0)
+      .limit(parseInt(limit) || 20);
+    await ExemptionApplication.populate(applications, [
+      { path: "loanContract", select: ["contractNumber"] },
+      "decision",
+    ]);
 
-    //filter by contract number if needed
-    if (match.contractNumber) {
-      applications = applications.filter((it) => {
-        return it.loanContract.contractNumber == match.contractNumber;
-      });
-    }
     const applicationsObject = JSON.parse(JSON.stringify(applications));
     for (const item of applicationsObject) {
       item.loanContract = item.loanContract.contractNumber;
+      delete item.contracts;
     }
 
     if (!applications) {

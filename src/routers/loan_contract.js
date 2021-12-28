@@ -13,7 +13,6 @@ router.post("/loan_contracts", auth, async (req, res) => {
   const tempContract = await LoanContract.findOne({
     "loanProfile._id": loanProfile,
   });
-  log.print(`te ${tempContract}`);
 
   if (tempContract) {
     return res.status(400).send({
@@ -33,7 +32,6 @@ router.post("/loan_contracts", auth, async (req, res) => {
       signatureImg,
     });
 
-    log.print(newContract.loanProfile);
     await newContract.save();
     await newContract.populate([
       { path: "loanProfile.staff" },
@@ -255,7 +253,6 @@ router.get("/loan_contracts/one", auth, async (req, res) => {
         match[str] = req.query[str];
       }
     }
-    log.print(match);
     const contract = await LoanContract.findOne(match)
       .populate([
         { path: "loanProfile.staff" },
