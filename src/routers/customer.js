@@ -12,58 +12,47 @@ const router = express.Router();
  */
 router.get("/customers", auth, async (req, res) => {
   try {
-    const { phoneNumber, id, name, address, email, matchExact, isStartWith } =
-      req.query;
-    console.log(`name ${name}`);
+    const {
+      name,
+      phoneNumber,
+      identityNumber,
+      customerType,
+      email,
+      isStartWith,
+    } = req.query;
     const match = {};
-    let startWith;
-    if (isStartWith === "true") {
+
+    let startWith = "";
+    if (isStartWith == true) {
       startWith = "^";
-    } else {
-      startWith = "";
     }
-    if (matchExact === "true") {
-      if (phoneNumber) {
-        match.phoneNumber = phoneNumber;
-      }
-      if (id) {
-        match._id = id;
-      }
-      if (name) {
-        match.name = name;
-      }
-      if (address) {
-        match.address = address;
-      }
-      if (email) {
-        match.email = email;
-      }
-    } else {
-      if (phoneNumber) {
-        match.phoneNumber = {
-          $regex: startWith + phoneNumber,
-          $options: "i",
-        };
-      }
-      if (id) {
-        match._id = { $regex: startWith + id, $options: "i" };
-      }
-      if (name) {
-        match.name = { $regex: startWith + name, $options: "i" };
-      }
-      if (address) {
-        match.address = { $regex: startWith + address, $options: "i" };
-      }
-      if (email) {
-        match.email = { $regex: startWith + email, $options: "i" };
-      }
+    if (phoneNumber) {
+      match.phoneNumber = {
+        $regex: startWith + phoneNumber,
+        $options: "i",
+      };
+    }
+    if (name) {
+      match.name = { $regex: startWith + name, $options: "i" };
+    }
+    if (identityNumber) {
+      match.identityNumber = {
+        $regex: startWith + identityNumber,
+        $options: "i",
+      };
+    }
+    if (email) {
+      match.email = { $regex: startWith + email, $options: "i" };
+    }
+    if (customerType) {
+      match.customerType = parseInt(customerType);
     }
 
     const result = await Customer.find(match);
     res.json({ data: result });
   } catch (error) {
     log.error(error);
-    res.status(500).send(error);
+    res.status(500).send({ error: error.toString() });
   }
 });
 
