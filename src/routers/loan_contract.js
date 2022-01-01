@@ -224,12 +224,32 @@ router.get("/loan_contracts", auth, async (req, res) => {
           },
         ],
       },
+      {
+        path: "exemptionApplications",
+        populate: [
+          {
+            path: "decision",
+          },
+        ],
+      },
+      {
+        path: "extensionApplications",
+        populate: [
+          {
+            path: "decision",
+          },
+        ],
+      },
     ]);
 
     for (const item of contracts) {
       delete item.staffs;
       delete item.approvers;
       delete item.customers;
+      item.extensionApplications = item.extensionApplications ?? [];
+      item.disburseCertificates = item.disburseCertificates ?? [];
+      item.liquidationApplications = item.liquidationApplications ?? [];
+      item.exemptionApplications = item.exemptionApplications ?? [];
     }
     if (contracts.length == 0) {
       return res.status(404).send();
@@ -261,6 +281,12 @@ router.get("/loan_contracts/one", auth, async (req, res) => {
         { path: "disburseCertificates" },
         {
           path: "exemptionApplications",
+          populate: {
+            path: "decision",
+          },
+        },
+        {
+          path: "extensionApplications",
           populate: {
             path: "decision",
           },
