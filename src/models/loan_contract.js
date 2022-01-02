@@ -1,12 +1,13 @@
+console.log("Create loan contract");
+
 import mongoose from "mongoose";
 import validator from "validator";
 import { toArray } from "../utils/utils.js";
 import { StaffRole } from "../utils/enums.js";
-import LoanProfile from "./loan_profile.js";
 import BranchInfo from "./branch_info.js";
 import moment from "moment";
 import { LoanProfileStatus } from "../utils/enums.js";
-
+import LoanProfile from "./loan_profile.js";
 /**
  * @swagger
  * components:
@@ -157,6 +158,28 @@ loanContractSchema.methods.getDebt = async function () {
   //#endregion
 
   return disburseAmount - liquidationAmount - exemptionAmount;
+};
+
+loanContractSchema.methods.getPaid = async function () {
+  const contract = this;
+  await contract.populate("liquidationApplications");
+  await contract.populate("exemptionApplications");
+  let paid = 0;
+  for (const item of contract.liquidationApplications) {
+    if (
+      item.status == LoanProfileStatus.Pending ||
+      item.status == LoanProfileStatus.Done
+    )
+      paid += item.amount;
+  }
+  for (const item of contract.exemptionApplications) {
+    if (
+      item.status == LoanProfileStatus.Pending ||
+      item.status == LoanProfileStatus.Done
+    )
+      paid += item.amount;
+  }
+  return paid;
 };
 
 loanContractSchema.methods.canAddLiquidationApplication = async function (

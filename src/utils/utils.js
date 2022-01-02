@@ -10,6 +10,7 @@ function dateSetter(date) {
   const fm = moment(date, "DD/MM/YYYY");
   return fm.toDate();
 }
+
 function dateGetter(date) {
   return moment(date).format("DD/MM/YYYY");
 }

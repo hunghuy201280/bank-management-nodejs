@@ -1,9 +1,11 @@
+console.log("Create customer");
+
 import mongoose from "mongoose";
 import validator from "validator";
 import { dateSetter, dateGetter } from "../utils/utils.js";
 import { CustomerType } from "../utils/enums.js";
 import { toArray } from "../utils/utils.js";
-
+import moment from "moment";
 /**
  * @swagger
  * components:
@@ -134,79 +136,83 @@ const customerSchema = mongoose.Schema(
     timestamps: true,
   }
 );
-// customerSchema.methods.toJSON = function () {
-//   const customerObject = this.toObject();
-//   customerObject.dateOfBirth = dateGetter(customerObject.dateOfBirth);
-//   customerObject.identityCardCreatedDate = dateGetter(
-//     customerObject.identityCardCreatedDate
-//   );
+customerSchema.methods.getRecentContracts = async function () {
+  const recentContracts = await mongoose
+    .model("LoanContract")
+    .find({
+      "loanProfile.customer": this._id,
+    })
+    .sort({
+      createdAt: -1,
+    })
+    .limit(4)
+    .populate([
+      "loanProfile.staff",
+      "loanProfile.approver",
+      "loanProfile.customer",
+      { path: "disburseCertificates" },
+      {
+        path: "liquidationApplications",
+        populate: [
+          {
+            path: "decision",
+            populate: {
+              path: "paymentReceipt",
+            },
+          },
+        ],
+      },
+      {
+        path: "exemptionApplications",
+        populate: [
+          {
+            path: "decision",
+          },
+        ],
+      },
+      {
+        path: "extensionApplications",
+        populate: [
+          {
+            path: "decision",
+          },
+        ],
+      },
+    ]);
 
-//   return customerObject;
-// };
+  return recentContracts;
+};
+
+customerSchema.methods.getStatistic = async function () {
+  const statistics = {
+    thisYear: 0,
+    lastYear: 0,
+    total: 0,
+    paid: 0,
+    unPaid: 0,
+  };
+  const contracts = await mongoose.model("LoanContract").find({
+    "loanProfile.customer": this._id,
+  });
+  for (const contract of contracts) {
+    const createdAt = moment(contract.createdAt);
+    const now = moment();
+    if (createdAt.year == now.year) {
+      statistics.thisYear += contract.loanProfile.moneyToLoan;
+    } else if (createdAt.year == now.year - 1) {
+      statistics.lastYear += contract.loanProfile.moneyToLoan;
+    }
+    statistics.total += contract.loanProfile.moneyToLoan;
+    const asyncResults = await Promise.all([
+      contract.getDebt(),
+      contract.getPaid(),
+    ]);
+    statistics.paid += asyncResults[1];
+    statistics.unPaid += asyncResults[0];
+  }
+  return statistics;
+};
 
 const Customer = mongoose.model("Customer", customerSchema);
 
 export default Customer;
-
-/**
- * @swagger
- * /loan_profile/{id}:
- *   get:
- *     summary: Get single loan profile.
- *     tags: [LoanProfile]
- *     parameters:
- *        - in: path
- *          name: id
- *          schema:
- *            type: String
- *          required: true
- *          description: Id của loan profile cần get
- *     responses:
- *       '200':
- *         description: Found
- *         content:
- *           application/json:
- *             schema:
- *               $ref : "#/components/schemas/LoanProfile"
- *             example:
- *              _id: 6173a676b9d0b5fa9bdef126
- *              customer:
- *                _id: 6173a676b9d0b5fa9bdef123
- *                name: Hung Huy
- *                dateOfBirth: '2001-11-02T17:00:00.000Z'
- *                address: 123 Lũy Bán Bich, Hiệp Tân, Tân Phú, HCM
- *                identityNumber: '1234456789'
- *                identityCardCreatedDate: '2001-11-02T17:00:00.000Z'
- *                phoneNumber: '0933970824'
- *                permanentResidence: 123 Lũy Bán Bich, Hiệp Tân, Tân Phú, HCM
- *                customerType: 2
- *                createdAt: '2021-10-23T06:06:46.125Z'
- *                updatedAt: '2021-10-23T06:06:46.125Z'
- *                __v: 0
- *              staff: 616aad0eee88ba8690b3ec1f
- *              loanApplicationNumber: HSSV.2021.2310.2
- *              proofOfIncome:
- *              - imageId: 61680edba7fc9635249f6d7e
- *                imageType: 1
- *                _id: 6173a676b9d0b5fa9bdef127
- *              - imageId: 61680edba7fc9635249f6d7e
- *                imageType: 1
- *                _id: 6173a676b9d0b5fa9bdef128
- *              moneyToLoan: 5
- *              loanPurpose: purpose purpose purpose
- *              loanDuration: 10000000
- *              collateral: house, car
- *              expectedSourceMoneyToRepay: work
- *              benefitFromLoan: money
- *              signatureImg: 61680edba7fc9635249f6d7e
- *              createdAt: '2021-10-23T06:06:46.271Z'
- *              updatedAt: '2021-10-23T06:06:46.271Z'
- *              __v: 0
- *
- *       '400':
- *         description: Error
- *         content:
- *           application/json:
- *             example:
- *              error: "This loan profile doesn't exist'"
- */

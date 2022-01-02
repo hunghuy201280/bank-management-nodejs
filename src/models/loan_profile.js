@@ -1,5 +1,8 @@
+console.log("Create loan profile");
+
 import mongoose from "mongoose";
 import validator from "validator";
+
 import { ProofOfIncomeType } from "../utils/enums.js";
 import { toArray } from "../utils/utils.js";
 import moment from "moment";

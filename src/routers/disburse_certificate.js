@@ -1,5 +1,6 @@
 import Customer from "../models/customer.js";
 import LoanProfile from "../models/loan_profile.js";
+import LoanContract from "../models/loan_contract.js";
 import DisburseCertificate from "../models/disburse_certificate.js";
 import express from "express";
 import * as log from "../utils/logger.js";
@@ -12,7 +13,12 @@ const router = express.Router();
  */
 router.post("/disburse_certificates", auth, async (req, res) => {
   try {
-    const { loanContract, amount } = req.body;
+    let { loanContract, amount, isMax } = req.body;
+    if (isMax) {
+      const contract = await LoanContract.findById(loanContract);
+      amount = await contract.getRemainingDisburse();
+    }
+
     const certificate = new DisburseCertificate({
       loanContract,
       amount,
