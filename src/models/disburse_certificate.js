@@ -4,6 +4,7 @@ import { dateSetter, dateGetter } from "../utils/utils.js";
 import { CustomerType } from "../utils/enums.js";
 import { toArray } from "../utils/utils.js";
 import LoanContract from "./loan_contract.js";
+import BranchInfo from "./branch_info.js";
 import moment from "moment";
 const disburseCertificateSchema = mongoose.Schema(
   {
@@ -57,14 +58,23 @@ disburseCertificateSchema.pre("save", async function (next) {
   const cert = this;
   if (cert.isNew) {
     const loanContract = await LoanContract.findById(cert.loanContract);
+    await loanContract.populate("loanProfile.branchInfo");
     const canAddReceipt = await loanContract.canAddDisburseCertificate(
       cert.amount
     );
+    const currentBranch = loanContract.loanProfile.branchInfo;
+    const branchHasEnoughMoney = currentBranch.branchBalance - cert.amount >= 0;
     if (!canAddReceipt) {
       throw new Error(
         "Can't add new disburse certificate, exceed the remaining amount"
       );
     }
+    if (!branchHasEnoughMoney) {
+      throw new Error("Unavailable balance at this branch");
+    }
+    await BranchInfo.findByIdAndUpdate(currentBranch._id, {
+      branchBalance: currentBranch.branchBalance - cert.amount,
+    });
   }
 
   next();

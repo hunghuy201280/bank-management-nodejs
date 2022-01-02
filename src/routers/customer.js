@@ -73,6 +73,7 @@ router.post("/customers", async (req, res) => {
       customerType,
       businessRegistrationCertificate,
       companyRules,
+      email,
     } = req.body;
     log.print(req.body);
     if (
@@ -107,6 +108,7 @@ router.post("/customers", async (req, res) => {
       customerType,
       businessRegistrationCertificate,
       companyRules,
+      email,
     });
     await customer.save();
     res.send(customer);

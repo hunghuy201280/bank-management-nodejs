@@ -1,5 +1,3 @@
-console.log("Create customer");
-
 import mongoose from "mongoose";
 import validator from "validator";
 import { dateSetter, dateGetter } from "../utils/utils.js";
@@ -194,12 +192,13 @@ customerSchema.methods.getStatistic = async function () {
   const contracts = await mongoose.model("LoanContract").find({
     "loanProfile.customer": this._id,
   });
+  const now = moment();
+
   for (const contract of contracts) {
     const createdAt = moment(contract.createdAt);
-    const now = moment();
-    if (createdAt.year == now.year) {
+    if (createdAt.year() == now.year()) {
       statistics.thisYear += contract.loanProfile.moneyToLoan;
-    } else if (createdAt.year == now.year - 1) {
+    } else if (createdAt.year() == now.year() - 1) {
       statistics.lastYear += contract.loanProfile.moneyToLoan;
     }
     statistics.total += contract.loanProfile.moneyToLoan;

@@ -1,5 +1,3 @@
-console.log("Create loan profile");
-
 import mongoose from "mongoose";
 import validator from "validator";
 

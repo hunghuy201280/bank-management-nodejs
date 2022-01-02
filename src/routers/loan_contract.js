@@ -40,12 +40,12 @@ router.post("/loan_contracts", auth, async (req, res) => {
       { path: "disburseCertificates" },
       {
         path: "liquidationApplications",
-        populate: {
-          path: "decision",
-          populate: {
-            path: "paymentReceipt",
-          },
-        },
+      },
+      {
+        path: "exemptionApplications",
+      },
+      {
+        path: "extensionApplications",
       },
     ]);
 

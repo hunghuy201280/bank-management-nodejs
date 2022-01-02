@@ -1,5 +1,3 @@
-console.log("Create loan contract");
-
 import mongoose from "mongoose";
 import validator from "validator";
 import { toArray } from "../utils/utils.js";
