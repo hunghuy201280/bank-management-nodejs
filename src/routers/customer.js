@@ -14,6 +14,7 @@ const router = express.Router();
 router.get("/customers", auth, async (req, res) => {
   try {
     const {
+      id,
       name,
       phoneNumber,
       identityNumber,
@@ -26,6 +27,9 @@ router.get("/customers", auth, async (req, res) => {
     let startWith = "";
     if (isStartWith == true) {
       startWith = "^";
+    }
+    if (id) {
+      match._id = id;
     }
     if (phoneNumber) {
       match.phoneNumber = {
@@ -136,6 +140,49 @@ router.get("/customers/details/:id", auth, async (req, res) => {
       recentContracts,
       statistics,
     });
+  } catch (error) {
+    log.error(error);
+    res.status(400).send({ error: error.toString() });
+  }
+});
+
+/**
+ * update customer
+ */
+router.patch("/customers/:id", auth, async (req, res) => {
+  try {
+    const customer = await Customer.findById(req.params.id);
+    if (!customer) {
+      throw new Error("Customer not found");
+    }
+    const {
+      name,
+      dateOfBirth,
+      address,
+      identityNumber,
+      identityCardCreatedDate,
+      phoneNumber,
+      permanentResidence,
+      businessRegistrationCertificate,
+      companyRules,
+      email,
+    } = req.body;
+    customer.name = name;
+    customer.address = address;
+    customer.identityNumber = identityNumber;
+    customer.identityCardCreatedDate = moment(identityCardCreatedDate);
+    customer.phoneNumber = phoneNumber;
+    if (customer.type == CustomerType.Business) {
+      customer.businessRegistrationCertificate =
+        businessRegistrationCertificate;
+      customer.companyRules = companyRules;
+    } else if (customer.type == CustomerType.Resident) {
+      customer.dateOfBirth = moment(dateOfBirth);
+      customer.permanentResidence = permanentResidence;
+    }
+    customer.email = email;
+    await customer.save();
+    res.send();
   } catch (error) {
     log.error(error);
     res.status(400).send({ error: error.toString() });
