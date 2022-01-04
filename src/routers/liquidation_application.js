@@ -8,6 +8,7 @@ import auth from "../middleware/auth.js";
 import { LoanProfileStatus } from "../utils/enums.js";
 import moment from "moment";
 import LoanContract from "../models/loan_contract.js";
+import PaymentReceipt from "../models/payment_receipt.js";
 
 const router = express.Router();
 //#region params
@@ -72,10 +73,17 @@ router.post("/liquidation_applications/decision", auth, async (req, res) => {
       amount: application.amount,
       BODSignature,
     });
+    const paymentReceipt = new PaymentReceipt({
+      amount: decision.amount,
+    });
+    decision.paymentReceipt = paymentReceipt;
+    await paymentReceipt.save();
+
     await decision.save();
     application.decision = decision;
     await application.save();
     await application.populate("decision");
+    await application.populate("decision.paymentReceipt");
     res.send(application);
   } catch (error) {
     log.error(error);
