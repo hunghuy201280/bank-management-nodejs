@@ -3,9 +3,52 @@ import LoanContract from "../models/loan_contract.js";
 import LoanProfile from "../models/loan_profile.js";
 import { LoanType, LoanProfileStatus, StaffRole } from "../utils/enums.js";
 import moment from "moment";
+import multer from "multer";
 import auth from "../middleware/auth.js";
+import { sendMail } from "../utils/utils.js";
 import * as log from "../utils/logger.js";
 const router = express.Router();
+
+const upload = multer({
+  limits: {
+    fileSize: 1000000000,
+  },
+  fileFilter(req, file, cb) {
+    if (!file.originalname.match(/\.(pdf)$/)) {
+      cb(new Error("Please upload a pdf file"));
+    }
+    cb(null, true);
+  },
+});
+router.post(
+  "/loan_contracts/:id/send_mail",
+  auth,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const file = req.file;
+      const base64String = file.buffer.toString("base64");
+      const contract = await LoanContract.findById(req.params.id).populate([
+        "loanProfile.customer",
+      ]);
+
+      sendMail(
+        {
+          data: base64String,
+          filename: file.originalname,
+        },
+        contract
+      );
+      res.send();
+    } catch (e) {
+      console.log(`sendmail error ${e}`);
+      res.status(400).send(e);
+    }
+  },
+  (error, req, res, next) => {
+    res.status(400).send({ error: error.toString() });
+  }
+);
 
 ///creat loan contract
 router.post("/loan_contracts", auth, async (req, res) => {

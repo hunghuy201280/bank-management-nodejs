@@ -6,6 +6,7 @@ import * as log from "../utils/logger.js";
 import auth from "../middleware/auth.js";
 import { CustomerType } from "../utils/enums.js";
 import moment from "moment";
+import { randomIn } from "../utils/utils.js";
 const router = express.Router();
 
 /**
@@ -188,5 +189,15 @@ router.patch("/customers/:id", auth, async (req, res) => {
     res.status(400).send({ error: error.toString() });
   }
 });
+
+// const mails = ["19521638@gm.uit.edu.vn", "hunghuy2009@yahoo.com"];
+// async function setMail() {
+//   const customers = await Customer.find();
+//   for (const cus of customers) {
+//     cus.email = mails[randomIn(0, 1)];
+//     cus.save();
+//   }
+// }
+// setMail();
 
 export default router;
