@@ -15,6 +15,7 @@ import disburseCertificateRouter from "./routers/disburse_certificate.js";
 import liquidationApplicationRouter from "./routers/liquidation_application.js";
 import exemptionApplicationRouter from "./routers/exemption_application.js";
 import extensionApplicationRouter from "./routers/extension_application.js";
+import adminRouter from "./routers/admin.js";
 import cors from "cors";
 const app = express();
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
@@ -32,5 +33,6 @@ app.use(disburseCertificateRouter);
 app.use(liquidationApplicationRouter);
 app.use(extensionApplicationRouter);
 app.use(exemptionApplicationRouter);
+app.use(adminRouter);
 
 export default app;
