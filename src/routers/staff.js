@@ -3,6 +3,7 @@ import BranchInfo from "../models/branch_info.js";
 import express from "express";
 import * as log from "../utils/logger.js";
 import moment from "moment";
+
 import {
   dateSetter,
   dateGetter,
@@ -215,6 +216,7 @@ router.post("/staffs/login", async (req, res) => {
       throw new Error("This user is not working at this branch");
     }
     const token = await staff.getToken();
+
     res.send({ staff, token, clockInOut: staff.isClockedInOrOut() });
   } catch (err) {
     log.error(err);

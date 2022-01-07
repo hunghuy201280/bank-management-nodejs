@@ -3,6 +3,7 @@ import { specs } from "./utils/docs.js";
 import swaggerUI from "swagger-ui-express";
 
 import db from "./db/mongoose.js";
+import http from "http";
 
 import loanProfileRouter from "./routers/loan_profile.js";
 import staffRouter from "./routers/staff.js";
@@ -17,7 +18,16 @@ import exemptionApplicationRouter from "./routers/exemption_application.js";
 import extensionApplicationRouter from "./routers/extension_application.js";
 import adminRouter from "./routers/admin.js";
 import cors from "cors";
+import realtime from "./socketio/realtime.js";
 const app = express();
+const server = http.createServer(app);
+//init socketio server
+realtime.connect(server);
+
+app.use(function (req, res, next) {
+  res.io = realtime.connection().io;
+  next();
+});
 app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs));
 app.use(express.json());
 app.use(cors());
@@ -35,4 +45,7 @@ app.use(extensionApplicationRouter);
 app.use(exemptionApplicationRouter);
 app.use(adminRouter);
 
-export default app;
+app.get("/", function (req, res) {
+  res.send("Active");
+});
+export default server;

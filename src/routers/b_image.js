@@ -27,10 +27,7 @@ router.post(
       console.log(files.length);
 
       for (var i = 0; i < files.length; i++) {
-        const buffer = await sharp(files[i].buffer)
-          .resize({ width: 250, height: 250 })
-          .png()
-          .toBuffer();
+        const buffer = await sharp(files[i].buffer).png().toBuffer();
         const _id = new mongoose.Types.ObjectId();
         const orn = files[i].originalname;
         const fileName = `${_id.toString()}_${orn.slice(

@@ -1,11 +1,12 @@
 import express from "express";
 import LoanContract from "../models/loan_contract.js";
 import LoanProfile from "../models/loan_profile.js";
+import BImage from "../models/b_image.js";
 import { LoanType, LoanProfileStatus, StaffRole } from "../utils/enums.js";
 import moment from "moment";
 import multer from "multer";
 import auth from "../middleware/auth.js";
-import { sendMail } from "../utils/utils.js";
+import { sendMail, randomIn } from "../utils/utils.js";
 import * as log from "../utils/logger.js";
 const router = express.Router();
 
@@ -371,14 +372,60 @@ router.get("/loan_contracts/debt/:id", auth, async (req, res) => {
 
 //#endregion
 
+// const imgs = {
+//   1: [
+//     "61d6b774a7c9ba7c843353eb_labor_contract1.png",
+//     "61d6b774a7c9ba7c843353ee_labor_contract2.png",
+//     "61d6b774a7c9ba7c843353f1_labor_contract3.png",
+//     "61d6b774a7c9ba7c843353f4_labor_contract4.png",
+//     "61d6b774a7c9ba7c843353f7_labor_contract5.png",
+//   ],
+//   2: [
+//     "61d6b774a7c9ba7c843353fa_salary1.png",
+//     "61d6b774a7c9ba7c843353fd_salary2.png",
+//     "61d6b775a7c9ba7c84335400_salary3.png",
+//     "61d6b775a7c9ba7c84335403_salary4.png",
+//     "61d6b775a7c9ba7c84335406_salary5.png",
+//   ],
+//   3: [
+//     "61d6b773a7c9ba7c843353dc_house1.png",
+//     "61d6b773a7c9ba7c843353df_house2.png",
+//     "61d6b774a7c9ba7c843353e2_house3.png",
+//     "61d6b774a7c9ba7c843353e5_house4.png",
+//     "61d6b774a7c9ba7c843353e8_house5.png",
+//   ],
+//   4: [
+//     "61d6b773a7c9ba7c843353cd_car1.png",
+//     "61d6b773a7c9ba7c843353d0_car2.png",
+//     "61d6b773a7c9ba7c843353d3_car3.png",
+//     "61d6b773a7c9ba7c843353d6_car4.png",
+//     "61d6b773a7c9ba7c843353d9_car5.png",
+//   ],
+//   5: [
+//     "61d6b772a7c9ba7c843353be_business1.png",
+//     "61d6b772a7c9ba7c843353c1_business2.png",
+//     "61d6b773a7c9ba7c843353c4_business3.png",
+//     "61d6b773a7c9ba7c843353c7_business4.png",
+//     "61d6b773a7c9ba7c843353ca_business5.png",
+//   ],
+// };
 // async function tempFunc() {
 //   const contracts = await LoanContract.find();
-//   const num = "HDVV.21.12.15.";
-//   let i = 1;
 //   for (const item of contracts) {
-//     item.contractNumber = num + i++;
-//     console.log(item.contractNumber);
-//     await item.save();
+//     const profile = item.loanProfile;
+//     const realProf = await LoanProfile.findById(profile._id.toString());
+//     for (let i = 0; i < profile.proofOfIncome.length; i++) {
+//       profile.proofOfIncome[i].imageId =
+//         imgs[profile.proofOfIncome[i].imageType][randomIn(0, 4)];
+//       realProf.proofOfIncome[i].imageId =
+//         imgs[realProf.proofOfIncome[i].imageType][randomIn(0, 4)];
+//     }
+//     try {
+//       item.save();
+//       realProf.save();
+//     } catch (e) {
+//       log.print(`${e} ${item.contractNumber}`);
+//     }
 //   }
 // }
 // tempFunc();

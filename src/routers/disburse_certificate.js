@@ -25,6 +25,7 @@ router.post("/disburse_certificates", auth, async (req, res) => {
       certNumber: await DisburseCertificate.getDisburseCertificateNumber(),
     });
     await certificate.save();
+
     res.send(certificate);
   } catch (error) {
     log.error(error);

@@ -6,6 +6,8 @@ import { toArray } from "../utils/utils.js";
 import LoanContract from "./loan_contract.js";
 import BranchInfo from "./branch_info.js";
 import moment from "moment";
+import realtime from "../socketio/realtime.js";
+
 const disburseCertificateSchema = mongoose.Schema(
   {
     loanContract: {
@@ -72,9 +74,12 @@ disburseCertificateSchema.pre("save", async function (next) {
     if (!branchHasEnoughMoney) {
       throw new Error("Unavailable balance at this branch");
     }
+    const newBalance = currentBranch.branchBalance - cert.amount;
     await BranchInfo.findByIdAndUpdate(currentBranch._id, {
-      branchBalance: currentBranch.branchBalance - cert.amount,
+      branchBalance: newBalance,
     });
+
+    realtime.connection().io.emit("balanceChanged", newBalance);
   }
 
   next();
