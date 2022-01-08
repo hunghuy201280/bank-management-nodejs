@@ -54,14 +54,20 @@ router.get("/statistic", auth, async (req, res) => {
     //#endregion
 
     //#region calculate
-    const totalDisburse = disburseCerts
-      .map((it) => it.amount)
-      .reduce((pre, cur) => pre + cur);
+    let totalDisburse = 0;
+    let totalPayment = 0;
 
-    const totalPayment = paymentReceipts
-      .map((it) => it.amount)
-      .reduce((pre, cur) => pre + cur);
+    if (disburseCerts.length > 0) {
+      totalDisburse = disburseCerts
+        .map((it) => it.amount)
+        .reduce((pre, cur) => pre + cur);
+    }
 
+    if (paymentReceipts.length > 0) {
+      totalPayment = paymentReceipts
+        .map((it) => it.amount)
+        .reduce((pre, cur) => pre + cur);
+    }
     //init value
     const revenueByType = {};
     for (const type in LoanType) {

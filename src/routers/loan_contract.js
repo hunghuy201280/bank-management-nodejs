@@ -428,5 +428,25 @@ router.get("/loan_contracts/debt/:id", auth, async (req, res) => {
 //     }
 //   }
 // }
-// tempFunc();
+// async function tempFunc() {
+//   const contracts = await LoanContract.find();
+//   for (const item of contracts) {
+//     const profile = item.loanProfile;
+//     const realProf = await LoanProfile.findById(profile._id.toString());
+//     const tempType = randomIn(1, 6);
+//     const tempMoney = randomIn(1000, 1000000);
+//     profile.loanType = tempType;
+//     realProf.loanType = tempType;
+//     profile.moneyToLoan = tempMoney;
+//     realProf.moneyToLoan = tempMoney;
+
+//     try {
+//       item.save();
+//       realProf.save();
+//     } catch (e) {
+//       log.print(`${e} ${item.contractNumber}`);
+//     }
+//   }
+// }
+//tempFunc();
 export default router;
