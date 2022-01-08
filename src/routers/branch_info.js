@@ -3,6 +3,7 @@ import BranchInfo from "../models/branch_info.js";
 import auth from "../middleware/auth.js";
 import * as log from "../utils/logger.js";
 import { StaffRole } from "../utils/enums.js";
+import realtime from "../socketio/realtime.js";
 
 const router = express.Router();
 
@@ -59,7 +60,10 @@ router.post("/branch_info/deposit/:branchCode", auth, async (req, res) => {
     if (amount <= 0 || !amount) {
       throw new Error("Amount is not valid");
     }
-    branchInfo.branchBalance += amount;
+    const newBalance = branchInfo.branchBalance + amount;
+    branchInfo.branchBalance = newBalance;
+    realtime.connection().io.emit("balanceChanged", newBalance);
+
     await branchInfo.save();
     res.send({ data: branchInfo });
   } catch (error) {
