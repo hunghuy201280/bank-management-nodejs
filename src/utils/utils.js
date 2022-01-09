@@ -55,6 +55,7 @@ function sendMail(pdf, loanContract) {
   };
   sgMail.send(msg).catch((err) => {
     console.log(err);
+    console.log(`send mail Error: ${loanContract}`);
   });
 }
 
